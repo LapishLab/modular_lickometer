@@ -27,8 +27,8 @@ class PCF8523:
         
         Args:
             i2c: I2C object (if None, creates one)
-            scl_pin: SCL pin number (default 6)
-            sda_pin: SDA pin number (default 5)
+            scl_pin: SCL pin number (default 9)
+            sda_pin: SDA pin number (default 8)
             i2c_freq: I2C frequency in Hz
             addr: I2C address (0x68 default, 0x69 with A0 high)
         """
@@ -192,7 +192,7 @@ class PCF8523:
 # Global RTC instance
 _rtc_instance = None
 
-def init_rtc(scl_pin=6, sda_pin=5, i2c_freq=400000):
+def init_rtc(scl_pin=9, sda_pin=8, i2c_freq=400000):
     """Initialize and return global RTC instance"""
     global _rtc_instance
     _rtc_instance = PCF8523(scl_pin=scl_pin, sda_pin=sda_pin, i2c_freq=i2c_freq)
