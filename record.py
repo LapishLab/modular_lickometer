@@ -14,16 +14,9 @@ def record_touch():
 	# ===============================
 	
 	# Initialize RTC
-	print("Initializing RTC...")
-	try:
-		rtc_device = rtc.init_rtc(scl_pin=I2C_SCL, sda_pin=I2C_SDA)
-		# Auto-sync with system time on startup
-		rtc_device.sync_time()
-		print(f"RTC initialized: {rtc_device.get_timestamp()}")
-		use_rtc = True
-	except Exception as e:
-		print(f"RTC initialization failed: {e}")
-		use_rtc = False
+	rtc_device = rtc.init_rtc(scl_pin=I2C_SCL, sda_pin=I2C_SDA)
+	rtc_device.sync_time(ntp=False)  # Sync with system time (no NTP)
+	print(f"RTC initialized: {rtc_device.get_timestamp()}")
 	
 	# ---- Capacitive touch setup ----
 	touch = TouchPad(Pin(TOUCH_PIN))
@@ -48,12 +41,7 @@ def record_touch():
 		os.mount(sd, data_folder)
 
 	# Use RTC timestamp for filename if available, otherwise use milliseconds
-	if use_rtc:
-		print("Using RTC timestamp for filename.")
-		filename_timestamp = rtc_device.get_timestamp_filename()
-	else:
-		filename_timestamp = str(time.ticks_ms())
-		print("not using RTC")
+	filename_timestamp = rtc_device.get_timestamp_filename()
 	
 	with open("/name.txt", 'r') as f:
 		esp_name = f.read().strip()
@@ -75,11 +63,7 @@ def record_touch():
 				f.flush()
 				return
 
-			if use_rtc:
-				timestamp = rtc_device.get_timestamp()
-			else:
-				t_ms = time.ticks_ms()
-				timestamp = t_ms
+			timestamp = rtc_device.get_timestamp()
 			
 			val = touch.read()
 
