@@ -13,8 +13,8 @@ pixel = neopixel.NeoPixel(machine.Pin(1), 1)
 
 # Helper function to clear the pixel before exiting
 def clear_led():
-    pixel[0] = (0, 0, 0)
-    pixel.write()
+	pixel[0] = (0, 0, 0)
+	pixel.write()
 
 print("Starting TinyS2 RGB LED Loop... Press Ctrl+C to stop.")
 
@@ -33,4 +33,4 @@ while True:
 	pixel[0] = (0, 0, 50)
 	pixel.write()
 	time.sleep(0.5)
-        
+		
