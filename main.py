@@ -1,7 +1,7 @@
 import config
 import time
 import _thread
-
+import os
 
 def main():
 	print("Starting Main Loop")
@@ -43,7 +43,9 @@ def run_experiment(core, core_str):
 		time.sleep_ms(config.SAMPLE_PERIOD_MS)
 	print("Recording stopped, flushing data...")
 	writer.flush()
+	print("Data flushed, exiting thread")
+	print(f"Data folder contents: {os.listdir(config.DATA_FOLDER)}")
 
 
 if __name__ == "__main__":
-	main();
+	main()

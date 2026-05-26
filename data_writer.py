@@ -37,17 +37,6 @@ class DataWriter:
 		self.samples_since_flush = 0
 		self.pending_data = []
 		
-		# Initialize SPI
-		self.spi = SoftSPI(
-			baudrate=4_000_000,
-			sck=Pin(spi_sck),
-			mosi=Pin(spi_mosi),
-			miso=Pin(spi_miso),
-		)
-		
-		# Mount SD card if not already mounted
-		self._mount_sd_card(sd_cs, data_folder=data_folder)
-		
 		# Construct full file path
 		self.file_path = f"{data_folder}/{filename}"
 		
@@ -57,25 +46,6 @@ class DataWriter:
 		with open(self.file_path, 'w') as f:
 			f.write(f"{header}\n")
 	
-	def _mount_sd_card(self, sd_cs, data_folder=DATA_FOLDER):
-		"""
-		Mount SD card to data folder if not already mounted
-		
-		Args:
-			sd_cs: Chip select pin for SD card
-		"""
-		# Check if data folder already exists (i.e., SD card already mounted)
-		if data_folder.replace("/", "") not in os.listdir():
-			print(f"Mounting SD card to {data_folder}...")
-			try:
-				sd = sdcard.SDCard(self.spi, Pin(sd_cs))
-				os.mount(sd, data_folder)
-				print(f"SD card mounted successfully")
-			except Exception as e:
-				print(f"Error mounting SD card: {e}")
-				raise
-		else:
-			print(f"SD card already mounted at {data_folder}")
 	
 	def write(self, timestamp, value):
 		self.pending_data.append(f'{timestamp},{value}')
