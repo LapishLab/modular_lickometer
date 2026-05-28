@@ -7,10 +7,12 @@ from sd import mount_data_folder
 from hardware import clock, touch, button
 
 def main():
-	current_status = Status.PENDING
+	
 	mount_data_folder()
 
 	print("Starting Main Loop")
+
+	current_status = Status.PENDING
 	while(True):
 		time.sleep(1)
 		# print("loop")
