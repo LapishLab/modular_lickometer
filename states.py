@@ -3,6 +3,7 @@ class Status:
 	STARTUP = [[0, 0, 255], 0]
 	PENDING = [[0, 255, 0], 1]
 	RECORDING = [[0, 255, 0], 0]
+	STOPPING_RECORDING = [[255, 255, 0], 1]
 	DATA_TRANSFER = [[255, 255, 0], 2]
 	
 	# Error states

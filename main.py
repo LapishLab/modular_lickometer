@@ -28,8 +28,9 @@ def main():
 				time.sleep(1) # debounce
 			else:
 				print("Indicating that recording should stop")
-				states.current_status = Status.PENDING	
-				time.sleep(5) # let it finish up
+				states.current_status = Status.STOPPING_RECORDING
+				while states.current_status == Status.STOPPING_RECORDING:
+					time.sleep(1)  # Wait for recording thread to finish
 				# led.set_status("Transferring")
 				# transfer_data()
 				# led.set_status("Idle")
@@ -53,7 +54,7 @@ def run_experiment(core, core_str):
 	print("Recording stopped, flushing data...")
 	writer.flush()
 	print("Data flushed, exiting thread")
-	print(f"Data folder contents: {os.listdir(config.DATA_FOLDER)}")
+	states.current_status = Status.PENDING
 
 
 if __name__ == "__main__":
