@@ -9,3 +9,4 @@ class Status:
 	ERROR_SD = [[255, 0, 0], 0]
 	ERROR_RTC = [[255, 0, 0], 3]
 	
+current_status = Status.STARTUP
