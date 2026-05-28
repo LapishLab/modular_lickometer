@@ -22,7 +22,10 @@ import rtc
 from machine import TouchPad, Pin
 
 clock = rtc.init_rtc(scl_pin=I2C_SCL, sda_pin=I2C_SDA)
-is_recording = False
 touch = TouchPad(Pin(TOUCH_PIN))
 button = Pin(STOP_BUTTON_PIN, Pin.IN, Pin.PULL_UP)
-# led
+
+
+# State managment
+from states import Status
+current_status = Status.STARTUP

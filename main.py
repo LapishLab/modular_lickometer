@@ -2,24 +2,26 @@ import config
 import time
 import _thread
 import os
+from states import Status
 
 def main():
 	print("Starting Main Loop")
+	config.current_status = Status.PENDING
 	while(True):
 		time.sleep(1)
 		# print("loop")
 		if config.button.value() == 0: # Is the button pressed?
 			print("Button Pressed")
-			if not config.is_recording:
+			if config.current_status == Status.PENDING:
 				print("Starting Recording Thread")
-				config.is_recording = True
+				config.current_status = Status.RECORDING
 				# run_experiment()
 				_thread.start_new_thread(run_experiment, ("Core1", 1))
 				# config.led.set_status("Recording")
 				time.sleep(1) # debounce
 			else:
 				print("Indicating that recording should stop")
-				config.is_recording = False
+				config.current_status = Status.PENDING	
 				time.sleep(5) # let it finish up
 				# led.set_status("Transferring")
 				# transfer_data()
@@ -36,7 +38,7 @@ def run_experiment(core, core_str):
 	filename = f'{now}_{name}.csv'
 	writer = DataWriter(filename)
 
-	while(config.is_recording):
+	while(config.current_status == Status.RECORDING):
 		c = config.touch.read()
 		t = config.clock.get_timestamp()
 		writer.write(t,c)
