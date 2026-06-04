@@ -23,8 +23,10 @@ def do_everything():
 	try:
 		mount_data_folder()
 	except Exception as e:
-		print_error("Failed to mount data folder", e)
 		states.current_status = Status.ERROR_SD
+		while True:
+			print_error("Failed to mount data folder", e)
+			time.sleep(1)
 		return
 
 	print("Starting Main Loop")
