@@ -34,24 +34,35 @@ def do_everything():
 	states.current_status = Status.PENDING
 	while(True):
 		time.sleep(1)
-		# print("loop")
-		if button.value() == 0: # Is the button pressed?
-			print("Button Pressed")
-			if states.current_status == Status.PENDING:
-				print("Starting Recording Thread")
-				states.current_status = Status.RECORDING
-				# run_experiment()
-				_thread.start_new_thread(run_experiment, ("Core1", 1))
-				# config.led.set_status("Recording")
-				time.sleep(1) # debounce
-			else:
-				print("Indicating that recording should stop")
-				states.current_status = Status.STOPPING_RECORDING
-				while states.current_status == Status.STOPPING_RECORDING:
-					time.sleep(1)  # Wait for recording thread to finish
-				# led.set_status("Transferring")
-				# transfer_data()
-				# led.set_status("Idle")
+		try:
+			check_button()
+		except Exception as e:
+			states.current_status = Status.ERROR_BUTTON
+			while True:
+				print_error("An unexpected error occurred", e)
+				time.sleep(1) # Halt further execution on unexpected error
+
+
+
+def check_button():
+	# print("loop")
+	if button.value() == 0: # Is the button pressed?
+		print("Button Pressed")
+		if states.current_status == Status.PENDING:
+			print("Starting Recording Thread")
+			states.current_status = Status.RECORDING
+			# run_experiment()
+			_thread.start_new_thread(run_experiment, ("Core1", 1))
+			# config.led.set_status("Recording")
+			time.sleep(1) # debounce
+		else:
+			print("Indicating that recording should stop")
+			states.current_status = Status.STOPPING_RECORDING
+			while states.current_status == Status.STOPPING_RECORDING:
+				time.sleep(1)  # Wait for recording thread to finish
+			# led.set_status("Transferring")
+			# transfer_data()
+			# led.set_status("Idle")
 
 
 from data_writer import DataWriter
