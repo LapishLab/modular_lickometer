@@ -6,6 +6,7 @@ import states
 from states import Status
 from sd import mount_data_folder
 from hardware import clock, touch, button
+import hardware
 from utilities import print_error
 
 def main():
@@ -17,7 +18,8 @@ def main():
 			print_error("An unexpected error occurred", e)
 			time.sleep(1) # Halt further execution on unexpected error
 	
-def do_everything():	
+def do_everything():
+	hardware.initialize()	
 	try:
 		mount_data_folder()
 	except Exception as e:
