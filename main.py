@@ -52,7 +52,7 @@ def check_button():
 			print("Starting Recording Thread")
 			states.current_status = Status.RECORDING
 			# run_experiment()
-			_thread.start_new_thread(run_experiment, ("Core1", 1))
+			_thread.start_new_thread(try_experiment, ("Core1", 1))
 			# config.led.set_status("Recording")
 			time.sleep(1) # debounce
 		else:
@@ -66,6 +66,15 @@ def check_button():
 
 
 from data_writer import DataWriter
+def try_experiment(core, core_str):
+	try:
+		run_experiment(core, core_str)
+	except:
+		#set status 
+		# Go into forever loop. Down the line we can figure out how to safely recover
+		print('hi')
+
+
 def run_experiment(core, core_str):
 	print('Running experiment')
 	# Create Data writer
