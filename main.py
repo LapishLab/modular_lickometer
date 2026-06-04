@@ -5,11 +5,11 @@ import os
 import states
 from states import Status
 from sd import mount_data_folder
-from hardware import clock, touch, button
 import hardware
 from utilities import print_error
 
 def main():
+	time.sleep(5)
 	try:
 		do_everything()
 	except Exception as e:
@@ -26,12 +26,13 @@ def do_everything():
 		states.current_status = Status.ERROR_SD
 		while True:
 			print_error("Failed to mount data folder", e)
-			time.sleep(1)
+			time.sleep(100)
 		return
 
 	print("Starting Main Loop")
 
 	states.current_status = Status.PENDING
+	print("pending")
 	while(True):
 		time.sleep(1)
 		try:
@@ -39,14 +40,14 @@ def do_everything():
 		except Exception as e:
 			states.current_status = Status.ERROR_BUTTON
 			while True:
-				print_error("An unexpected error occurred", e)
+				print_error("A button error occurred", e)
 				time.sleep(1) # Halt further execution on unexpected error
 
 
 
 def check_button():
 	# print("loop")
-	if button.value() == 0: # Is the button pressed?
+	if hardware.button.value() == 0: # Is the button pressed?
 		print("Button Pressed")
 		if states.current_status == Status.PENDING:
 			print("Starting Recording Thread")
@@ -81,13 +82,13 @@ def run_experiment(core, core_str):
 	# Create Data writer
 	with open('name.txt', 'r') as f:
 		name = f.readline().strip()
-	now = clock.get_timestamp_filename()
+	now = hardware.clock.get_timestamp_filename()
 	filename = f'{now}_{name}.csv'
 	writer = DataWriter(filename)
 
 	while(states.current_status == Status.RECORDING):
-		c = touch.read()
-		t = clock.get_timestamp()
+		c = hardware.touch.read()
+		t = hardware.clock.get_timestamp()
 		writer.write(t,c)
 		time.sleep_ms(config.SAMPLE_PERIOD_MS)
 	print("Recording stopped, flushing data...")
