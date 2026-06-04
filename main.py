@@ -69,10 +69,11 @@ from data_writer import DataWriter
 def try_experiment(core, core_str):
 	try:
 		run_experiment(core, core_str)
-	except:
-		#set status 
-		# Go into forever loop. Down the line we can figure out how to safely recover
-		print('hi')
+	except Exception as e:
+		states.current_status = Status.ERROR_RUN_EXPERIMENT
+		while True:
+			print_error("An unexpected error occurred", e)
+			time.sleep(1) # Halt further execution on unexpected error
 
 
 def run_experiment(core, core_str):

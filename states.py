@@ -14,5 +14,6 @@ class Status:
 	ERROR_TOUCH = [[255, 0, 0], 2]
 	ERROR_BUTTON = [[255, 0, 0], 4]
 	ERROR_GENERAL = [[255, 0, 0], 5]
+	ERROR_RUN_EXPERIMENT = [[255, 0, 0], 6]
 	
 current_status = Status.STARTUP
