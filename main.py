@@ -10,6 +10,15 @@ from utilities import print_error
 
 def main():
 	try:
+		do_everything()
+	except Exception as e:
+		states.current_status = Status.ERROR_GENERAL
+		while True:
+			print_error("An unexpected error occurred", e)
+			time.sleep(1) # Halt further execution on unexpected error
+	
+def do_everything():	
+	try:
 		mount_data_folder()
 	except Exception as e:
 		print_error("Failed to mount data folder", e)

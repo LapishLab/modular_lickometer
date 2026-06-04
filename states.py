@@ -13,5 +13,6 @@ class Status:
 	ERROR_LED = [[255, 0, 0], 1]
 	ERROR_TOUCH = [[255, 0, 0], 2]
 	ERROR_BUTTON = [[255, 0, 0], 4]
+	ERROR_GENERAL = [[255, 0, 0], 5]
 	
 current_status = Status.STARTUP
