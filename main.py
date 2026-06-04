@@ -6,10 +6,15 @@ import states
 from states import Status
 from sd import mount_data_folder
 from hardware import clock, touch, button
+from utilities import print_error
 
 def main():
-	
-	mount_data_folder()
+	try:
+		mount_data_folder()
+	except Exception as e:
+		print_error("Failed to mount data folder", e)
+		states.current_status = Status.ERROR_SD
+		return
 
 	print("Starting Main Loop")
 
