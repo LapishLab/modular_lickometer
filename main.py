@@ -34,7 +34,7 @@ def do_everything():
 	states.current_status = Status.PENDING
 	print("pending")
 	while(True):
-		time.sleep(1)
+		time.sleep(.001)
 		try:
 			check_button()
 		except Exception as e:
