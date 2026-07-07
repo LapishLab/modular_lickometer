@@ -84,11 +84,13 @@ def run_experiment(core, core_str):
 		name = f.readline().strip()
 	now = hardware.clock.get_timestamp_filename()
 	filename = f'{now}_{name}.csv'
+	start_time = time.ticks_ms()
 	writer = DataWriter(filename)
 
 	while(states.current_status == Status.RECORDING):
 		c = hardware.touch.read()
-		t = hardware.clock.get_timestamp()
+		elapsed_ms = time.ticks_diff(time.ticks_ms(), start_time)
+		t = elapsed_ms / 1000.0
 		writer.write(t,c)
 		time.sleep_ms(config.SAMPLE_PERIOD_MS)
 	print("Recording stopped, flushing data...")
