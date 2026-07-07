@@ -15,8 +15,8 @@ def main():
 	except Exception as e:
 		states.current_status = Status.ERROR_GENERAL
 		while True:
-			print_error("An unexpected error occurred", e)
-			time.sleep(1) # Halt further execution on unexpected error
+			print_error("An unknown error occurred somewhere in do_everything", e)
+			time.sleep(1) # Halt further execution on  error
 	
 def do_everything():
 	hardware.initialize()	
@@ -73,7 +73,7 @@ def try_experiment(core, core_str):
 	except Exception as e:
 		states.current_status = Status.ERROR_RUN_EXPERIMENT
 		while True:
-			print_error("An unexpected error occurred", e)
+			print_error("An unknown error occurred in run_experiment", e)
 			time.sleep(1) # Halt further execution on unexpected error
 
 
@@ -94,7 +94,7 @@ def run_experiment(core, core_str):
 		writer.write(t,c)
 		time.sleep_ms(config.SAMPLE_PERIOD_MS)
 	print("Recording stopped, flushing data...")
-	writer.flush()
+	writer.close()
 	print("Data flushed, exiting thread")
 	states.current_status = Status.PENDING
 

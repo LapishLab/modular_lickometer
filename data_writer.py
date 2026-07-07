@@ -43,37 +43,15 @@ class DataWriter:
 		print(f"Creating data file: {self.file_path}")
 		
 		# Open file and write header
-		with open(self.file_path, 'w') as f:
-			f.write(f"{header}\n")
-	
+		self.file = open(self.file_path, 'w')
+		self.file.write(f"{header}\n")
+		
 	
 	def write(self, timestamp, value):
-		self.pending_data.append(f'{timestamp},{value}')
-		self.samples_since_flush += 1
+		"""Write a single data point to the file"""
+		self.file.write(f"{timestamp},{value}\n")
 
-		if self.samples_since_flush >= self.FLUSH_MAX:
-			self.flush()
-	
-	def flush(self):		
-		with open(self.file_path, 'a') as f:
-			for d in self.pending_data:
-				f.write(f"{d}\n")
-		self.samples_since_flush = 0
-		self.pending_data = []
-	
-	# def close(self):
-	# 	"""Close the file and cleanup"""
-	# 	if self.file:
-	# 		self.file.flush()
-	# 		self.file.close()
-	# 		self.file = None
-	# 		print(f"Data file closed: {self.file_path}")
-	
-	# def __enter__(self):
-	# 	"""Context manager entry"""
-	# 	return self
-	
-	# def __exit__(self, exc_type, exc_val, exc_tb):
-	# 	"""Context manager exit - ensures file is closed"""
-	# 	self.close()
-	# 	return False
+	def close(self):
+		if self.file:
+			self.file.flush()
+			self.file.close()
