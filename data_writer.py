@@ -59,6 +59,7 @@ class DataWriter:
 			for d in self.pending_data:
 				f.write(f"{d}\n")
 		self.samples_since_flush = 0
+		self.pending_data = []
 	
 	# def close(self):
 	# 	"""Close the file and cleanup"""

@@ -38,19 +38,7 @@ class PCF8523:
             self.i2c = i2c
         
         self.addr = addr
-        self._init_rtc()
-    
-    def _init_rtc(self):
-        """Initialize RTC - stop oscillator if running, then restart"""
-        # Read Control_1 register
-        ctrl1 = self._read_register(0x00)
-        
-        # Set oscillator stop bit
-        self.i2c.writeto_mem(self.addr, 0x00, bytes([ctrl1 | 0x20]))
-        time.sleep_ms(10)
-        
-        # Clear oscillator stop bit to start oscillator
-        self.i2c.writeto_mem(self.addr, 0x00, bytes([ctrl1 & ~0x20]))
+
     
     def _read_register(self, reg):
         """Read a single register"""
@@ -173,6 +161,17 @@ class PCF8523:
             ntp: If True, try to sync with NTP server (requires network)
                 If False, use current MicroPython time.time()
         """
+        # Read Control_1 register
+        ctrl1 = self._read_register(0x00)
+        self.i2c.writeto_mem(self.addr, 0x00, bytes([ctrl1 | 0x20]))
+        time.sleep_ms(10)
+        
+        # Clear oscillator stop bit to start oscillator
+        self.i2c.writeto_mem(self.addr, 0x00, bytes([ctrl1 & ~0x20]))
+
+        # Control_3: Turn on auto battery switchover, enable battery low detection
+        self.i2c.writeto_mem(self.addr, 0x02, bytes([0x00]))  
+
         if ntp:
             try:
                 import ntptime

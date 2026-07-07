@@ -3,8 +3,8 @@ def mount_data_folder():
 	from config import SPI_SCK, SPI_MOSI, SPI_MISO, SD_CS, DATA_FOLDER
 	# Initialize SPI
 	print("Initializing SPI...")
-	from machine import Pin, SoftSPI
-	spi = SoftSPI(
+	from machine import Pin, SPI
+	spi = SPI(1,
 		baudrate=4_000_000,
 		sck=Pin(SPI_SCK),
 		mosi=Pin(SPI_MOSI),
