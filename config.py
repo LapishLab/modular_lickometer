@@ -21,3 +21,4 @@ DATA_FOLDER = "/data"
 
 # Sample period in milliseconds
 SAMPLE_PERIOD_MS = 10
+

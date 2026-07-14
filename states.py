@@ -17,3 +17,5 @@ class Status:
 	ERROR_RUN_EXPERIMENT = [[255, 0, 0], 6]
 	
 current_status = Status.STARTUP
+
+keep_recording = False 

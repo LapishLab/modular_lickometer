@@ -1,4 +1,5 @@
 import config
+from tcp import connect_to_server_and_send_file
 import time
 import _thread
 import os
@@ -44,7 +45,6 @@ def do_everything():
 				time.sleep(1) # Halt further execution on unexpected error
 
 
-
 def check_button():
 	# print("loop")
 	if hardware.button.value() == 0: # Is the button pressed?
@@ -52,6 +52,7 @@ def check_button():
 		if states.current_status == Status.PENDING:
 			print("Starting Recording Thread")
 			states.current_status = Status.RECORDING
+			states.keep_recording = True
 			# run_experiment()
 			_thread.start_new_thread(try_experiment, ("Core1", 1))
 			# config.led.set_status("Recording")
@@ -59,7 +60,8 @@ def check_button():
 		else:
 			print("Indicating that recording should stop")
 			states.current_status = Status.STOPPING_RECORDING
-			while states.current_status == Status.STOPPING_RECORDING:
+			states.keep_recording = False
+			while states.current_status is not Status.PENDING:
 				time.sleep(1)  # Wait for recording thread to finish
 			# led.set_status("Transferring")
 			# transfer_data()
@@ -83,11 +85,11 @@ def run_experiment(core, core_str):
 	with open('name.txt', 'r') as f:
 		name = f.readline().strip()
 	now = hardware.clock.get_timestamp_filename()
-	filename = f'{now}_{name}.csv'
+	file_path = f"{config.DATA_FOLDER}/{now}_{name}.csv"
 	start_time = time.ticks_ms()
-	writer = DataWriter(filename)
+	writer = DataWriter(file_path)
 
-	while(states.current_status == Status.RECORDING):
+	while(states.keep_recording):
 		c = hardware.touch.read()
 		elapsed_ms = time.ticks_diff(time.ticks_ms(), start_time)
 		t = elapsed_ms / 1000.0
@@ -96,6 +98,8 @@ def run_experiment(core, core_str):
 	print("Recording stopped, flushing data...")
 	writer.close()
 	print("Data flushed, exiting thread")
+	states.current_status = Status.DATA_TRANSFER 
+	connect_to_server_and_send_file(file_path = file_path)
 	states.current_status = Status.PENDING
 
 

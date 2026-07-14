@@ -1,10 +1,6 @@
 import socket
 import time
-
-# SERVER_HOST = "192.168.1.100" # your server IP
-# SERVER_PORT = 5000  # your server TCP port
-
-# HTTP POST
+import wifi
 
 def connect_tcp(SERVER_HOST: str, SERVER_PORT: int) -> socket.socket | None:
     print("Starting TCP connection attempts to {}:{}".format(SERVER_HOST, SERVER_PORT))
@@ -15,7 +11,7 @@ def connect_tcp(SERVER_HOST: str, SERVER_PORT: int) -> socket.socket | None:
         return None
     for attempt in range(5):
         s = socket.socket()
-        s.settimeout(5)
+        s.settimeout(10)
         try:
             print("Attempting connection to {}:{} (attempt {})".format(SERVER_HOST, SERVER_PORT, attempt+1))
             s.connect(addr_info)
@@ -58,6 +54,8 @@ def send_file(sock: socket.socket, file_path: str, chunk_size: int = 1024) -> bo
 
     try:
         with open(file_path, "rb") as f:
+            sock.sendall(file_path.encode() + b"\n")  # Send the file name first
+            sock.sendall(str(filesize).encode() + b"\n")  # Send the file size next
             sent = 0
             while True:
                 chunk = f.read(chunk_size)
@@ -75,7 +73,9 @@ def send_file(sock: socket.socket, file_path: str, chunk_size: int = 1024) -> bo
         print("Error opening/sending file {}: {}".format(file_path, e))
         return False
 
-def test(SERVER_HOST: str, SERVER_PORT: int, file_path: str | None = None) -> None:
+def connect_to_server_and_send_file(SERVER_HOST: str = "192.168.0.115", SERVER_PORT: int = 5000, file_path: str | None = None) -> None:
+    wifi.connect_to_wifi("TP","",10) # Maybe this should be handled seperately
+
     sock = connect_tcp(SERVER_HOST, SERVER_PORT)
     if not sock:
         return
@@ -95,8 +95,5 @@ def test(SERVER_HOST: str, SERVER_PORT: int, file_path: str | None = None) -> No
 
 
 if __name__ == '__main__':
-    # Support both regular Python and MicroPython execution environments.
-	host = "192.168.0.115"
-	port = 5000
-	file_path = "/test for tcp.csv"  # Path to the file you want to send
-	test(host, port, file_path)
+    file_path = "/test for tcp.csv"  # Path to the file you want to send
+    connect_to_server_and_send_file(file_path = file_path)

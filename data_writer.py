@@ -18,7 +18,7 @@ class DataWriter:
 	and provides methods for writing data.
 	"""
 	
-	def __init__(self, filename, header="timestamp,touch_value", 
+	def __init__(self, file_path, header="timestamp,touch_value", 
 				 spi_sck=SPI_SCK, spi_mosi=SPI_MOSI, spi_miso=SPI_MISO, 
 				 sd_cs=SD_CS, data_folder=DATA_FOLDER):
 		"""
@@ -38,7 +38,7 @@ class DataWriter:
 		self.pending_data = []
 		
 		# Construct full file path
-		self.file_path = f"{data_folder}/{filename}"
+		self.file_path = file_path
 		
 		print(f"Creating data file: {self.file_path}")
 		
