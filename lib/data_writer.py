@@ -47,9 +47,11 @@ class DataWriter:
 		self.file.write(f"{header}\n")
 		
 	
-	def write(self, timestamp, value):
-		"""Write a single data point to the file"""
-		self.file.write(f"{timestamp},{value}\n")
+	def write(self, timestamp, *values):
+		"""Write a timestamp and one or more values to the file."""
+		row = [timestamp]
+		row.extend(values)
+		self.file.write(",".join(str(value) for value in row) + "\n")
 
 	def close(self):
 		if self.file:

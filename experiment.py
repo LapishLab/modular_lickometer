@@ -28,18 +28,19 @@ def run_experiment(core, core_str):
 	now = hardware.clock.get_timestamp_filename()
 	file_path = f"{config.DATA_FOLDER}/{now}_{name}.csv"
 	start_time = time.ticks_ms()
-	writer = DataWriter(file_path)
+	writer = DataWriter(file_path, header="timestamp,touch_value_1,touch_value_2")
 
 	try:
 		while(states.keep_recording):
 			c = hardware.touch.read()
+			c2 = hardware.touch2.read()
 			hardware.sync_out.value(
 				1 if sample_index % pattern_samples < high_samples else 0
 			)
 			sample_index += 1
 			elapsed_ms = time.ticks_diff(time.ticks_ms(), start_time)
 			t = elapsed_ms / 1000.0
-			writer.write(t,c)
+			writer.write(t, c, c2)
 			time.sleep_ms(config.SAMPLE_PERIOD_MS)
 	finally:
 		hardware.sync_out.value(0)

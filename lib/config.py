@@ -14,6 +14,7 @@ RGB_PIN = 38               # Data pin for RGB LED
 
 # Input pins
 TOUCH_PIN = 1
+TOUCH_PIN_2 = 6
 STOP_BUTTON_PIN = 21      # Press to stop recording and start Wi-Fi transfer
 
 # Sync output pin
