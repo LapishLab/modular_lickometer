@@ -16,6 +16,9 @@ RGB_PIN = 38               # Data pin for RGB LED
 TOUCH_PIN = 1
 STOP_BUTTON_PIN = 21      # Press to stop recording and start Wi-Fi transfer
 
+# Sync output pin
+SYNC_PIN = 7   # High for 1000 samples, then low for 500 samples
+
 # Where do we save data
 DATA_FOLDER = "/data"
 
