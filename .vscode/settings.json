@@ -6,11 +6,8 @@
     },
     "python.terminal.activateEnvironment": false,
     "micropico.openOnStart": true,
-    "python.analysis.typeshedPaths": [
-        "~/.micropico-stubs/included"
-    ],
+    "python.analysis.stubPath": "${workspaceFolder}/typings",
     "python.analysis.extraPaths": [
-        "~/.micropico-stubs/included",
         "${workspaceFolder}/lib"
     ]
 }
