@@ -10,7 +10,8 @@ def connect_tcp(SERVER_HOST: str, SERVER_PORT: int) -> socket.socket | None:
     except Exception as e:
         print("Failed to resolve address {}:{}: {}".format(SERVER_HOST, SERVER_PORT, e))
         return None
-    for attempt in range(5):
+    num_attempts = 2
+    for attempt in range(num_attempts):
         s = socket.socket()
         s.settimeout(10)
         try:
@@ -21,7 +22,7 @@ def connect_tcp(SERVER_HOST: str, SERVER_PORT: int) -> socket.socket | None:
         except Exception as e:
             print("TCP connection failed on attempt {}: {}".format(attempt+1, e))
             s.close()
-            if attempt < 4:   # Don't sleep after the last attempt
+            if attempt < num_attempts-1:   # Don't sleep after the last attempt
                 time.sleep(1)
     return None
 
