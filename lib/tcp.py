@@ -78,7 +78,7 @@ def send_file(sock: socket.socket, file_path: str, chunk_size: int = 1024) -> bo
 def connect_to_server_and_send_file(file_path: str | None = None) -> None:
     wifi.connect_to_wifi(config.WIFI_SSID, config.WIFI_PASSWORD, 10) # Maybe this should be handled seperately
 
-    sock = connect_tcp(SERVER_HOST, SERVER_PORT)
+    sock = connect_tcp(config.TCP_SERVER_HOST, config.TCP_SERVER_PORT)
     if not sock:
         return
 
