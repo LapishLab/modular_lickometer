@@ -1,6 +1,7 @@
 import socket
 import time
 import wifi
+import config
 
 def connect_tcp(SERVER_HOST: str, SERVER_PORT: int) -> socket.socket | None:
     print("Starting TCP connection attempts to {}:{}".format(SERVER_HOST, SERVER_PORT))
@@ -73,8 +74,8 @@ def send_file(sock: socket.socket, file_path: str, chunk_size: int = 1024) -> bo
         print("Error opening/sending file {}: {}".format(file_path, e))
         return False
 
-def connect_to_server_and_send_file(SERVER_HOST: str = "192.168.0.115", SERVER_PORT: int = 5000, file_path: str | None = None) -> None:
-    wifi.connect_to_wifi("TP","",10) # Maybe this should be handled seperately
+def connect_to_server_and_send_file(file_path: str | None = None) -> None:
+    wifi.connect_to_wifi(config.WIFI_SSID, config.WIFI_PASSWORD, 10) # Maybe this should be handled seperately
 
     sock = connect_tcp(SERVER_HOST, SERVER_PORT)
     if not sock:

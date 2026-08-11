@@ -26,3 +26,8 @@ DATA_FOLDER = "/data"
 # Sample period in milliseconds
 SAMPLE_PERIOD_MS = 10
 
+# WIFI info
+# WIFI_SSID = "TP"
+# WIFI_PASSWORD = ""
+WIFI_SSID = "Short"
+WIFI_PASSWORD = "[REMOVED]"

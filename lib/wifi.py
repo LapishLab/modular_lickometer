@@ -42,7 +42,7 @@ def connect_to_wifi(SSID, PASSWORD, WIFI_CONNECT_TIMEOUT_S):
 		sta.disconnect()
 
 	print(f"Connecting to {SSID}")
-	sta.connect(SSID)
+	sta.connect(SSID, PASSWORD)
 
 	start = time.ticks_ms()
 	while not sta.isconnected():
