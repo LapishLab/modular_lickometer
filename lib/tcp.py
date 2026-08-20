@@ -1,5 +1,6 @@
 import socket
 import time
+import os
 import wifi
 import config
 
@@ -82,17 +83,30 @@ def connect_to_server_and_send_file(file_path: str | None = None) -> None:
     if not sock:
         return
 
-    if file_path:
+
+    all_files = os.listdir(config.DATA_FOLDER)
+    for f in all_files:
+        file_path = f"{config.DATA_FOLDER}/{f}"
+        print("Sending file:", file_path)
         ok = send_file(sock, file_path)
         if not ok:
-            print("Failed to send file")
-    else:
-        msg = b"Hello from ESP32"
-        send_data(sock, msg)
+            print("Failed to send file:", file_path)
+        else:
+            print("File sent successfully:", file_path)
 
-    reply = receive_reply(sock)
-    if reply is not None:
-        print("Received reply:", reply)
+    # reply = receive_reply(sock)
+    # if reply is not None:
+    #     print("Received reply:", reply)
+
+    # if file_path:
+    #     ok = send_file(sock, file_path)
+    #     if not ok:
+    #         print("Failed to send file")
+    # else:
+    #     msg = b"Hello from ESP32"
+    #     send_data(sock, msg)
+
+
     sock.close()
 
 
