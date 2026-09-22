@@ -13,22 +13,29 @@ touch = None
 touch2 = None
 button = None
 sync_out = None
-button_pressed = asyncio.ThreadSafeFlag()
-_button_interrupt_armed = False
 
+class DebouncedButton:
+	"""A falling-edge button whose debounce state is self-contained."""
 
-def _handle_button_interrupt(pin):
-	"""Signal a button press without doing any work in interrupt context."""
-	global _button_interrupt_armed
-	if _button_interrupt_armed:
-		_button_interrupt_armed = False
-		button_pressed.set()
+	def __init__(self, pin_number, debounce_ms=50):
+		self._pin = Pin(pin_number, Pin.IN, Pin.PULL_UP)
+		self._debounce_ms = debounce_ms
+		self._interrupt = asyncio.ThreadSafeFlag()
+		self.pressed = asyncio.ThreadSafeFlag()
 
+		self._pin.irq(
+			trigger=Pin.IRQ_FALLING,
+			handler=lambda p:self._interrupt.set(),
+			hard=True,
+		)
+		self._debounce_task = asyncio.create_task(self._process_interrupts())
 
-def arm_button_interrupt():
-	"""Allow the next falling edge to be handled."""
-	global _button_interrupt_armed
-	_button_interrupt_armed = True
+	async def _process_interrupts(self):
+		while True:
+			await self._interrupt.wait()
+			self.pressed.set()
+			await asyncio.sleep_ms(self._debounce_ms)
+			self._interrupt.clear()
 
 async def initialize():
 	global led, clock, touch, touch2, button, sync_out
@@ -36,12 +43,6 @@ async def initialize():
 	clock = init_rtc(scl_pin=I2C_SCL, sda_pin=I2C_SDA)
 	touch = TouchPad(Pin(TOUCH_PIN))
 	touch2 = TouchPad(Pin(TOUCH_PIN_2))
-	button = Pin(STOP_BUTTON_PIN, Pin.IN, Pin.PULL_UP)
-	arm_button_interrupt()
-	button.irq(
-		trigger=Pin.IRQ_FALLING,
-		handler=_handle_button_interrupt,
-		hard=True,
-	)
+	button = DebouncedButton(STOP_BUTTON_PIN)
 	sync_out = Pin(SYNC_PIN, Pin.OUT, value=0)
 	
