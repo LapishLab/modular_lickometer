@@ -1,12 +1,16 @@
 {
     "python.languageServer": "Pylance",
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
     "python.analysis.typeCheckingMode": "basic",
     "python.analysis.diagnosticSeverityOverrides": {
         "reportMissingModuleSource": "none"
     },
     "python.terminal.activateEnvironment": false,
     "micropico.openOnStart": true,
-    "python.analysis.stubPath": "${workspaceFolder}/typings",
+    "python.analysis.stubPath": "${workspaceFolder}/.venv/Lib/site-packages",
+    "python.analysis.typeshedPaths": [
+        "${workspaceFolder}/.venv/Lib/site-packages"
+    ],
     "python.analysis.extraPaths": [
         "${workspaceFolder}/lib"
     ]
