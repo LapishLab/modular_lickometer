@@ -13,6 +13,22 @@ touch = None
 touch2 = None
 button = None
 sync_out = None
+button_pressed = asyncio.ThreadSafeFlag()
+_button_interrupt_armed = False
+
+
+def _handle_button_interrupt(pin):
+	"""Signal a button press without doing any work in interrupt context."""
+	global _button_interrupt_armed
+	if _button_interrupt_armed:
+		_button_interrupt_armed = False
+		button_pressed.set()
+
+
+def arm_button_interrupt():
+	"""Allow the next falling edge to be handled."""
+	global _button_interrupt_armed
+	_button_interrupt_armed = True
 
 async def initialize():
 	global led, clock, touch, touch2, button, sync_out
@@ -40,6 +56,12 @@ async def initialize():
 
 	try:
 		button = Pin(STOP_BUTTON_PIN, Pin.IN, Pin.PULL_UP)
+		arm_button_interrupt()
+		button.irq(
+			trigger=Pin.IRQ_FALLING,
+			handler=_handle_button_interrupt,
+			hard=True,
+		)
 	except Exception as e:
 		print(f"Button initialization failed: {e}")
 		states.current_status = states.Status.ERROR_BUTTON
