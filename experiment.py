@@ -7,17 +7,9 @@ import time
 from utilities import print_error
 from tcp import connect_to_server_and_send_file
 
-async def try_experiment():
-	try:
-		await run_experiment()
-	except Exception as e:
-		states.current_status = states.Status.ERROR_RUN_EXPERIMENT
-		while True:
-			print_error("An unknown error occurred in run_experiment", e)
-			await asyncio.sleep(1) # Halt further execution on unexpected error
 
 
-async def run_experiment():
+async def run_experiment(stop_event):
 	print('Running experiment')
 	high_samples = 1000
 	low_samples = 500
@@ -31,20 +23,15 @@ async def run_experiment():
 	start_time = time.ticks_ms()
 	writer = DataWriter(file_path, header="timestamp,touch_value_1,touch_value_2")
 
-	try:
-		while(states.keep_recording):
-			c = hardware.touch.read()
-			c2 = hardware.touch2.read()
-			hardware.sync_out.value(
-				1 if sample_index % pattern_samples < high_samples else 0
-			)
-			sample_index += 1
-			elapsed_ms = time.ticks_diff(time.ticks_ms(), start_time)
-			t = elapsed_ms / 1000.0
-			writer.write(t, c, c2)
-			await asyncio.sleep_ms(config.SAMPLE_PERIOD_MS)
-	finally:
-		hardware.sync_out.value(0)
+	while not stop_event.is_set():
+		c = hardware.touch.read()
+		c2 = hardware.touch2.read()
+		hardware.sync_out.value(1 if sample_index % pattern_samples < high_samples else 0)
+		sample_index += 1
+		elapsed_ms = time.ticks_diff(time.ticks_ms(), start_time)
+		t = elapsed_ms / 1000.0
+		writer.write(t, c, c2)
+		await asyncio.sleep_ms(config.SAMPLE_PERIOD_MS)
 	print("Recording stopped, flushing data...")
 	writer.close()
 	print("Data flushed, exiting recording task")
