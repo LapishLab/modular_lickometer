@@ -8,9 +8,10 @@ SD_CS    = 10
 I2C_SCL = 9
 I2C_SDA = 8
 
-# RGB LED pins
-RGB_PWR_PIN = 2           # Power control for RGB LED
-RGB_PIN = 38               # Data pin for RGB LED
+# LED pins
+LED_REC_PIN = 15
+LED_TRANSFER_PIN = 14
+LED_ERROR_PIN = 16
 
 # Input pins
 TOUCH_PIN = 1
