@@ -1,12 +1,7 @@
 from data_writer import DataWriter
 import asyncio
-import states
 import config
 import time
-from utilities import print_error
-from tcp import connect_to_server_and_send_file
-
-
 
 async def run_experiment(stop_event, rtc, touch_array):
 	print('Running experiment')
@@ -27,7 +22,3 @@ async def run_experiment(stop_event, rtc, touch_array):
 	print("Recording stopped, flushing data...")
 	writer.close()
 	print("Data flushed, exiting recording task")
-	states.current_status = states.Status.DATA_TRANSFER 
-	await connect_to_server_and_send_file(file_path=file_path)
-	states.current_status = states.Status.PENDING
-
