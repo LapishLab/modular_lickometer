@@ -1,5 +1,6 @@
 import asyncio
 import config
+from rtc import PCF8523
 import states
 from sd import mount_data_folder
 import hardware
@@ -14,6 +15,7 @@ async def main():
 	led_trans = BLINKING_LED(config.LED_TRANSFER_PIN)
 	led_err = BLINKING_LED(config.LED_ERROR_PIN)
 	button = DebouncedButton(config.STOP_BUTTON_PIN)
+	rtc = PCF8523(scl_pin=config.I2C_SCL, sda_pin=config.I2C_SDA)
 	await hardware.initialize()
 	mount_data_folder()
 
@@ -27,7 +29,7 @@ async def main():
 		led_rec.num_flashes = 0
 		print("Starting recording task")
 		stop_event = asyncio.Event()
-		asyncio.create_task(run_experiment(stop_event))
+		asyncio.create_task(run_experiment(stop_event, rtc))
 
 		await button.pressed.wait()
 		print("Indicating that recording should stop")

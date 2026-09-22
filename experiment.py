@@ -9,7 +9,7 @@ from tcp import connect_to_server_and_send_file
 
 
 
-async def run_experiment(stop_event):
+async def run_experiment(stop_event, rtc):
 	print('Running experiment')
 	high_samples = 1000
 	low_samples = 500
@@ -18,7 +18,7 @@ async def run_experiment(stop_event):
 	# Create Data writer
 	with open('name.txt', 'r') as f:
 		name = f.readline().strip()
-	now = hardware.clock.get_timestamp_filename()
+	now = rtc.get_timestamp_filename()
 	file_path = f"{config.DATA_FOLDER}/{now}_{name}.csv"
 	start_time = time.ticks_ms()
 	writer = DataWriter(file_path, header="timestamp,touch_value_1,touch_value_2")

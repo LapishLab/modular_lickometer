@@ -188,19 +188,3 @@ class PCF8523:
             self.set_time(tm[0], tm[1], tm[2], tm[3], tm[4], tm[5])
             print(f"[RTC] Synced with system time: {self.get_timestamp()}")
 
-# Global RTC instance
-_rtc_instance = None
-
-def init_rtc(scl_pin=9, sda_pin=8, i2c_freq=400000):
-    """Initialize and return global RTC instance"""
-    global _rtc_instance
-    _rtc_instance = PCF8523(scl_pin=scl_pin, sda_pin=sda_pin, i2c_freq=i2c_freq)
-    return _rtc_instance
-
-def get_rtc():
-    """Get global RTC instance"""
-    global _rtc_instance
-    if _rtc_instance is None:
-        init_rtc()
-    return _rtc_instance
-
