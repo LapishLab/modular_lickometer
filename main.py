@@ -8,6 +8,7 @@ from utilities import print_error
 from experiment import run_experiment
 from button import DebouncedButton
 from led import BLINKING_LED
+from machine import TouchPad, Pin
 
 async def main():
 	await asyncio.sleep(5)
@@ -16,6 +17,7 @@ async def main():
 	led_err = BLINKING_LED(config.LED_ERROR_PIN)
 	button = DebouncedButton(config.STOP_BUTTON_PIN)
 	rtc = PCF8523(scl_pin=config.I2C_SCL, sda_pin=config.I2C_SDA)
+	touch_array = [TouchPad(Pin(p)) for p in config.TOUCH_PINS]
 	await hardware.initialize()
 	mount_data_folder()
 
@@ -29,7 +31,7 @@ async def main():
 		led_rec.num_flashes = 0
 		print("Starting recording task")
 		stop_event = asyncio.Event()
-		asyncio.create_task(run_experiment(stop_event, rtc))
+		asyncio.create_task(run_experiment(stop_event, rtc, touch_array))
 
 		await button.pressed.wait()
 		print("Indicating that recording should stop")

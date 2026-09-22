@@ -14,8 +14,7 @@ LED_TRANSFER_PIN = 14
 LED_ERROR_PIN = 16
 
 # Input pins
-TOUCH_PIN = 1
-TOUCH_PIN_2 = 4
+TOUCH_PINS = [1, 4]  # List of touch pins
 STOP_BUTTON_PIN = 21      # Press to stop recording and start Wi-Fi transfer
 
 # Sync output pin
