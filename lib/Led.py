@@ -1,9 +1,6 @@
 import machine
 import neopixel
-import time
-import _thread
-import config
-from states import Status
+import asyncio
 
 class LED:
 	def __init__(self, rgb_pwr_pin, rgb_data_pin, get_state):
@@ -29,10 +26,10 @@ class LED:
 		
 		self.get_state = get_state
 		
-		# Start watching state in a separate thread
-		_thread.start_new_thread(self.watch_state, ())
+		# Start watching state as a cooperative asyncio task.
+		self.task = asyncio.create_task(self.watch_state())
 	
-	def watch_state(self):
+	async def watch_state(self):
 		"""
 		Continuously monitor state and take LED actions
 		"""
@@ -40,17 +37,17 @@ class LED:
 			try:
 				color, num_flashes = self.get_state()
 				r, g, b = color
-				self.flash(times=num_flashes, r=r, g=g, b=b)
+				await self.flash(times=num_flashes, r=r, g=g, b=b)
 			except Exception as e:
 				print(f"Error in watch_state: {e}")
-				time.sleep(1)  # Try again in 1 second if there's an error
+				await asyncio.sleep(1)  # Try again in 1 second if there's an error
 	
 	def set_color(self, r, g, b):
 		"""Set LED color (RGB values 0-255)"""
 		self.pixel[0] = (r, g, b)
 		self.pixel.write()
 	
-	def flash(self, times=1, r=255, g=255, b=255):
+	async def flash(self, times=1, r=255, g=255, b=255):
 		"""
 		Flash LED a specified number of times
 		
@@ -60,13 +57,12 @@ class LED:
 		"""
 		if times == 0:
 			self.set_color(r, g, b)
-			time.sleep(1)  # Stay on for 1 second before checking state again
+			await asyncio.sleep(1)  # Stay on for 1 second before checking state again
 			return
 		
 		for _ in range(times):
 			self.set_color(r, g, b)
-			time.sleep(self.FLASH_ON / 1000)
+			await asyncio.sleep_ms(self.FLASH_ON)
 			self.set_color(0, 0, 0)
-			time.sleep(self.FLASH_OFF / 1000)
-		time.sleep(self.PAUSE_OFF / 1000)
- 
+			await asyncio.sleep_ms(self.FLASH_OFF)
+			await asyncio.sleep_ms(self.PAUSE_OFF)

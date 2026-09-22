@@ -1,6 +1,7 @@
 import socket
 import time
 import os
+import asyncio
 import wifi
 import config
 
@@ -76,23 +77,67 @@ def send_file(sock: socket.socket, file_path: str, chunk_size: int = 1024) -> bo
         print("Error opening/sending file {}: {}".format(file_path, e))
         return False
 
-def connect_to_server_and_send_file(file_path: str | None = None) -> None:
-    wifi.connect_to_wifi(config.WIFI_SSID, config.WIFI_PASSWORD, 10) # Maybe this should be handled seperately
+async def send_file_async(writer, file_path: str, chunk_size: int = 1024) -> bool:
+    """Send a file through an asyncio StreamWriter in binary chunks."""
+    try:
+        filesize = os.stat(file_path)[6]
+    except Exception as e:
+        print("Failed to stat file {}: {}".format(file_path, e))
+        return False
 
-    sock = connect_tcp(config.TCP_SERVER_HOST, config.TCP_SERVER_PORT)
-    if not sock:
+    try:
+        with open(file_path, "rb") as f:
+            writer.write(file_path.encode() + b"\n")
+            writer.write(str(filesize).encode() + b"\n")
+            await writer.drain()
+            sent = 0
+            while True:
+                chunk = f.read(chunk_size)
+                if not chunk:
+                    break
+                writer.write(chunk)
+                await writer.drain()
+                sent += len(chunk)
+        print("Finished sending file {} ({} bytes)".format(file_path, sent))
+        return True
+    except Exception as e:
+        print("Error opening/sending file {}: {}".format(file_path, e))
+        return False
+
+
+async def connect_to_server_and_send_file(file_path: str | None = None) -> None:
+    ip = await wifi.connect_to_wifi_async(
+        config.WIFI_SSID, config.WIFI_PASSWORD, 10
+    )
+    if ip is None:
         return
 
+    print("Connecting to {}:{}".format(config.TCP_SERVER_HOST, config.TCP_SERVER_PORT))
+    try:
+        _, writer = await asyncio.open_connection(
+            config.TCP_SERVER_HOST, config.TCP_SERVER_PORT
+        )
+    except Exception as e:
+        print("TCP connection failed:", e)
+        return
 
-    all_files = os.listdir(config.DATA_FOLDER)
-    for f in all_files:
-        file_path = f"{config.DATA_FOLDER}/{f}"
-        print("Sending file:", file_path)
-        ok = send_file(sock, file_path)
-        if not ok:
-            print("Failed to send file:", file_path)
-        else:
-            print("File sent successfully:", file_path)
+    try:
+        all_files = os.listdir(config.DATA_FOLDER)
+        for filename in all_files:
+            current_file_path = "{}/{}".format(config.DATA_FOLDER, filename)
+            print("Sending file:", current_file_path)
+            ok = await send_file_async(writer, current_file_path)
+            if not ok:
+                print("Failed to send file:", current_file_path)
+            else:
+                print("File sent successfully:", current_file_path)
+    finally:
+        writer.close()
+        try:
+            await writer.wait_closed()
+        except AttributeError:
+            # Older MicroPython asyncio StreamWriter versions have no wait_closed().
+            pass
 
     # reply = receive_reply(sock)
     # if reply is not None:
@@ -112,4 +157,4 @@ def connect_to_server_and_send_file(file_path: str | None = None) -> None:
 
 if __name__ == '__main__':
     file_path = "/test for tcp.csv"  # Path to the file you want to send
-    connect_to_server_and_send_file(file_path = file_path)
+    asyncio.run(connect_to_server_and_send_file(file_path=file_path))

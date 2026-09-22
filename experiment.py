@@ -1,4 +1,5 @@
 from data_writer import DataWriter
+import asyncio
 import states
 import hardware
 import config
@@ -6,17 +7,17 @@ import time
 from utilities import print_error
 from tcp import connect_to_server_and_send_file
 
-def try_experiment(core, core_str):
+async def try_experiment():
 	try:
-		run_experiment(core, core_str)
+		await run_experiment()
 	except Exception as e:
 		states.current_status = states.Status.ERROR_RUN_EXPERIMENT
 		while True:
 			print_error("An unknown error occurred in run_experiment", e)
-			time.sleep(1) # Halt further execution on unexpected error
+			await asyncio.sleep(1) # Halt further execution on unexpected error
 
 
-def run_experiment(core, core_str):
+async def run_experiment():
 	print('Running experiment')
 	high_samples = 1000
 	low_samples = 500
@@ -41,13 +42,13 @@ def run_experiment(core, core_str):
 			elapsed_ms = time.ticks_diff(time.ticks_ms(), start_time)
 			t = elapsed_ms / 1000.0
 			writer.write(t, c, c2)
-			time.sleep_ms(config.SAMPLE_PERIOD_MS)
+			await asyncio.sleep_ms(config.SAMPLE_PERIOD_MS)
 	finally:
 		hardware.sync_out.value(0)
 	print("Recording stopped, flushing data...")
 	writer.close()
-	print("Data flushed, exiting thread")
+	print("Data flushed, exiting recording task")
 	states.current_status = states.Status.DATA_TRANSFER 
-	connect_to_server_and_send_file(file_path = file_path)
+	await connect_to_server_and_send_file(file_path=file_path)
 	states.current_status = states.Status.PENDING
 

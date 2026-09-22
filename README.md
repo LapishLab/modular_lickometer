@@ -8,12 +8,12 @@ mpremote #Opened REPL
 4. # Not sure why we need all these imports, but hardware.initialize failed otherwise
 import config
 import time
-import _thread
+import asyncio
 import os
 import states
 from states import Status
 from sd import mount_data_folder
 import hardware
 from utilities import print_error
-hardware.initialize()
+asyncio.run(hardware.initialize())
 hardware.clock.sync_time() #Use the correct internal ESP32 clock to set the external RTC
