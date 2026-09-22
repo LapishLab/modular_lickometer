@@ -17,9 +17,6 @@ LED_ERROR_PIN = 16
 TOUCH_PINS = [1, 4]  # List of touch pins
 STOP_BUTTON_PIN = 21      # Press to stop recording and start Wi-Fi transfer
 
-# Sync output pin
-SYNC_PIN = 7   # High for 1000 samples, then low for 500 samples
-
 # Where do we save data
 DATA_FOLDER = "/data"
 

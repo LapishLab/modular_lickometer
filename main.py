@@ -3,7 +3,6 @@ import config
 from rtc import PCF8523
 import states
 from sd import mount_data_folder
-import hardware
 from utilities import print_error
 from experiment import run_experiment
 from button import DebouncedButton
@@ -18,7 +17,6 @@ async def main():
 	button = DebouncedButton(config.STOP_BUTTON_PIN)
 	rtc = PCF8523(scl_pin=config.I2C_SCL, sda_pin=config.I2C_SDA)
 	touch_array = [TouchPad(Pin(p)) for p in config.TOUCH_PINS]
-	await hardware.initialize()
 	mount_data_folder()
 
 	print("Starting Main Loop")
