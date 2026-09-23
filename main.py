@@ -29,12 +29,14 @@ async def main():
 		led_rec.num_flashes = 0
 		print("Starting recording task")
 		stop_event = asyncio.Event()
-		asyncio.create_task(run_experiment(stop_event, rtc, touch_array))
+		recording_task = asyncio.create_task(
+			run_experiment(stop_event, rtc, touch_array)
+		)
 
 		await button.pressed.wait()
 		print("Indicating that recording should stop")
 		stop_event.set()
-
+		await recording_task
 
 
 if __name__ == "__main__":
