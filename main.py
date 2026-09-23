@@ -7,16 +7,14 @@ from utilities import print_error
 from experiment import run_experiment
 from button import DebouncedButton
 from http_server import HTTPServer
-from led import BLINKING_LED
+from led import Status_LEDS
 from battery import BatteryMonitor
 from machine import TouchPad, Pin
 from mode_handler import ModeDefinition, ModeHandler, ModeType
 
 async def main() -> None:
 	await asyncio.sleep(5)
-	led_rec = BLINKING_LED(config.LED_REC_PIN)
-	led_trans = BLINKING_LED(config.LED_TRANSFER_PIN)
-	led_err = BLINKING_LED(config.LED_ERROR_PIN)
+	leds = Status_LEDS()
 	battery = BatteryMonitor(
 		config.BATTERY_VOLTAGE_PIN,
 		config.LOW_BATTERY_LED_PIN,
@@ -38,15 +36,15 @@ async def main() -> None:
 
 	while True:
 		states.current_status = states.Status.PENDING
-		led_rec.num_flashes = 1
+		leds.recording.set_blinks(1)
 		await server.start()
 		activation = await handler.wait_for_mode()
 
 		try:
 			await server.stop()
-			led_rec.num_flashes = 0
-
+			await leds.recording.set_constant(False)
 			if activation.mode == ModeType.RECORDING:
+				await leds.recording.set_constant(True)
 				await run_experiment(activation.stop_event, rtc, touch_array)
 			else:
 				raise ValueError("Unknown mode: {}".format(activation.mode))
