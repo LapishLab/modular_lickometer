@@ -5,7 +5,7 @@ import states
 from sd import mount_data_folder
 from utilities import print_error
 from experiment import run_experiment
-from button import DebouncedButton
+from button import UserButtons
 from http_server import HTTPServer
 from led import Status_LEDS
 from battery import BatteryMonitor
@@ -19,7 +19,7 @@ async def main() -> None:
 		config.BATTERY_VOLTAGE_PIN,
 		config.LOW_BATTERY_LED_PIN,
 	)
-	button = DebouncedButton(config.STOP_BUTTON_PIN)
+	buttons = UserButtons()
 	rtc = PCF8523(scl_pin=config.I2C_SCL, sda_pin=config.I2C_SDA)
 	touch_array = [TouchPad(Pin(p)) for p in config.TOUCH_PINS]
 	mount_data_folder()
@@ -27,8 +27,8 @@ async def main() -> None:
 	handler = ModeHandler((
 		ModeDefinition(
 			mode=ModeType.RECORDING,
-			start_on=(button.pressed,),
-			stop_on=(button.pressed,),
+			start_on=(buttons.start.pressed,),
+			stop_on=(buttons.stop.pressed,),
 		),
 	))
 

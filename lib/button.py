@@ -1,6 +1,12 @@
 from machine import Pin
 import asyncio
 
+import config
+class UserButtons:	
+	def __init__(self) -> None:
+		self.start = DebouncedButton(config.START_BUTTON_PIN)
+		self.stop = DebouncedButton(config.STOP_BUTTON_PIN)
+
 class DebouncedButton:
 	"""A falling-edge button whose debounce state is self-contained."""
 

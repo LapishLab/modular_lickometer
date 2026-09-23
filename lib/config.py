@@ -19,7 +19,8 @@ BATTERY_VOLTAGE_PIN = 8
 
 # Input pins
 TOUCH_PINS = [1, 4]  # List of touch pins
-STOP_BUTTON_PIN = 21      # Press to stop recording and start Wi-Fi transfer
+START_BUTTON_PIN = 17     # Press to start recording
+STOP_BUTTON_PIN = 18      # Press to stop recording
 
 # Where do we save data
 DATA_FOLDER = "/data"
