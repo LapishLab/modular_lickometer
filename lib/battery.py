@@ -2,7 +2,7 @@
 
 import asyncio
 from machine import ADC, PWM, Pin
-
+from config import BATTERY_VOLTAGE_PIN, LOW_BATTERY_LED_PIN
 
 class BatteryMonitor:
 	"""Periodically display the measured battery charge on a PWM LED.
@@ -18,8 +18,8 @@ class BatteryMonitor:
 
 	def __init__(
 		self,
-		analog_pin: int,
-		led_pin: int,
+		analog_pin: int = BATTERY_VOLTAGE_PIN,
+		led_pin: int = LOW_BATTERY_LED_PIN,
 		*,
 		empty_voltage: float = 3.2,
 		full_voltage: float = 4.2,

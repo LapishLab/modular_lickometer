@@ -15,10 +15,7 @@ from mode_handler import ModeDefinition, ModeHandler, ModeType
 async def main() -> None:
 	await asyncio.sleep(5)
 	leds = Status_LEDS()
-	battery = BatteryMonitor(
-		config.BATTERY_VOLTAGE_PIN,
-		config.LOW_BATTERY_LED_PIN,
-	)
+	battery = BatteryMonitor()
 	buttons = UserButtons()
 	rtc = PCF8523(scl_pin=config.I2C_SCL, sda_pin=config.I2C_SDA)
 	touch_array = [TouchPad(Pin(p)) for p in config.TOUCH_PINS]
