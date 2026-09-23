@@ -2,7 +2,7 @@ import network
 import time
 import asyncio
 
-def list_available_ssids():
+def list_available_ssids() -> list | None:
 	"""Scan and print all available Wi-Fi SSIDs."""
 	sta = network.WLAN(network.STA_IF)
 	if not sta.active():
@@ -20,7 +20,7 @@ def list_available_ssids():
 		print(f" {net[0].decode()} \t {net[3]}")
 	return networks
 
-def check_connection():
+def check_connection() -> None:
 	sta = network.WLAN(network.STA_IF)
 	if not sta.active():
 		print("STA is not turned on")
@@ -32,7 +32,7 @@ def check_connection():
 		print(f"Not connected to WIFI")
 	return
 
-def disconnect_wifi():
+def disconnect_wifi() -> None:
 	"""Disconnect and power down the station interface."""
 	sta = network.WLAN(network.STA_IF)
 	if sta.isconnected():
@@ -40,7 +40,11 @@ def disconnect_wifi():
 	sta.active(False)
 	print("Wi-Fi disabled")
 
-async def connect_to_wifi(SSID, PASSWORD, timeout_s=10):
+async def connect_to_wifi(
+	SSID: str,
+	PASSWORD: str,
+	timeout_s: int = 10,
+) -> str | None:
 	"""Connect to Wi-Fi without blocking other asyncio tasks."""
 	sta = network.WLAN(network.STA_IF)
 	if not sta.active():

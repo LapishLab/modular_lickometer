@@ -21,6 +21,7 @@ Example usage on ESP8266:
 """
 
 from micropython import const
+from machine import Pin, SPI
 import time
 
 
@@ -38,7 +39,7 @@ _TOKEN_STOP_TRAN = const(0xFD)
 _TOKEN_DATA = const(0xFE)
 
 
-def _crc7(buf, n):
+def _crc7(buf: bytearray, n: int) -> int:
     crc = 0
     for i in range(n):
         crc ^= buf[i]
@@ -48,31 +49,37 @@ def _crc7(buf, n):
 
 
 class SDCard:
-    def __init__(self, spi, cs, baudrate=1320000):
-        self.spi = spi
-        self.cs = cs
+    def __init__(self, spi: SPI, cs: Pin, baudrate: int = 1320000) -> None:
+        self.spi: SPI = spi
+        self.cs: Pin = cs
 
-        self.cmdbuf = bytearray(6)
-        self.dummybuf = bytearray(512)
-        self.tokenbuf = bytearray(1)
+        self.cmdbuf: bytearray = bytearray(6)
+        self.dummybuf: bytearray = bytearray(512)
+        self.tokenbuf: bytearray = bytearray(1)
         for i in range(512):
             self.dummybuf[i] = 0xFF
-        self.dummybuf_memoryview = memoryview(self.dummybuf)
+        self.dummybuf_memoryview: memoryview = memoryview(self.dummybuf)
+        self.cdv: int = 1
+        self.sectors: int = 0
 
         # initialise the card
         self.init_card(baudrate)
 
-    def init_spi(self, baudrate):
+    def init_spi(self, baudrate: int) -> None:
         try:
-            master = self.spi.MASTER
+            # ``MASTER`` exists on the pyboard SPI implementation but not on
+            # ESP32's machine.SPI.
+            master = getattr(self.spi, "MASTER")
         except AttributeError:
             # on ESP8266
             self.spi.init(baudrate=baudrate, phase=0, polarity=0)
         else:
-            # on pyboard
-            self.spi.init(master, baudrate=baudrate, phase=0, polarity=0)
+            # pyboard has a different init signature from machine.SPI.
+            init_method_name: str = "init"
+            pyboard_init = getattr(self.spi, init_method_name)
+            pyboard_init(master, baudrate=baudrate, phase=0, polarity=0)
 
-    def init_card(self, baudrate):
+    def init_card(self, baudrate: int) -> None:
         # init CS pin
         self.cs.init(self.cs.OUT, value=1)
 
@@ -124,7 +131,7 @@ class SDCard:
         # set to high data rate now that it's initialised
         self.init_spi(baudrate)
 
-    def init_card_v1(self):
+    def init_card_v1(self) -> None:
         for i in range(_CMD_TIMEOUT):
             time.sleep_ms(50)
             self.cmd(55, 0)
@@ -135,7 +142,7 @@ class SDCard:
                 return
         raise OSError("timeout waiting for v1 card")
 
-    def init_card_v2(self):
+    def init_card_v2(self) -> None:
         for i in range(_CMD_TIMEOUT):
             time.sleep_ms(50)
             self.cmd(58, 0, 4)
@@ -153,7 +160,14 @@ class SDCard:
                 return
         raise OSError("timeout waiting for v2 card")
 
-    def cmd(self, cmd, arg, final=0, release=True, skip1=False):
+    def cmd(
+        self,
+        cmd: int,
+        arg: int,
+        final: int = 0,
+        release: bool = True,
+        skip1: bool = False,
+    ) -> int:
         self.cs(0)
 
         # create and send the command
@@ -191,7 +205,7 @@ class SDCard:
         self.spi.write(b"\xff")
         return -1
 
-    def readinto(self, buf):
+    def readinto(self, buf: bytearray | memoryview) -> None:
         self.cs(0)
 
         # read until start byte (0xff)
@@ -217,7 +231,11 @@ class SDCard:
         self.cs(1)
         self.spi.write(b"\xff")
 
-    def write(self, token, buf):
+    def write(
+        self,
+        token: int,
+        buf: bytes | bytearray | memoryview,
+    ) -> None:
         self.cs(0)
 
         # send: start of block, data, checksum
@@ -239,7 +257,7 @@ class SDCard:
         self.cs(1)
         self.spi.write(b"\xff")
 
-    def write_token(self, token):
+    def write_token(self, token: int) -> None:
         self.cs(0)
         self.spi.read(1, token)
         self.spi.write(b"\xff")
@@ -250,7 +268,11 @@ class SDCard:
         self.cs(1)
         self.spi.write(b"\xff")
 
-    def readblocks(self, block_num, buf):
+    def readblocks(
+        self,
+        block_num: int,
+        buf: bytearray,
+    ) -> None:
         # workaround for shared bus, required for (at least) some Kingston
         # devices, ensure MOSI is high before starting transaction
         self.spi.write(b"\xff")
@@ -281,7 +303,11 @@ class SDCard:
             if self.cmd(12, 0, skip1=True):
                 raise OSError(5)  # EIO
 
-    def writeblocks(self, block_num, buf):
+    def writeblocks(
+        self,
+        block_num: int,
+        buf: bytes | bytearray,
+    ) -> None:
         # workaround for shared bus, required for (at least) some Kingston
         # devices, ensure MOSI is high before starting transaction
         self.spi.write(b"\xff")
@@ -308,7 +334,7 @@ class SDCard:
                 nblocks -= 1
             self.write_token(_TOKEN_STOP_TRAN)
 
-    def ioctl(self, op, arg):
+    def ioctl(self, op: int, arg: int) -> int | None:
         if op == 4:  # get number of blocks
             return self.sectors
         if op == 5:  # get block size in bytes

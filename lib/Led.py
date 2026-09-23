@@ -2,7 +2,7 @@ from machine import Pin, PWM
 import asyncio
 
 class BLINKING_LED:
-	def __init__(self, pin):
+	def __init__(self, pin: int) -> None:
 		"""
 		Initialize single LED
 		
@@ -23,7 +23,7 @@ class BLINKING_LED:
 		
 		self.task = asyncio.create_task(self.blink_loop())
 	
-	async def blink_loop(self):
+	async def blink_loop(self) -> None:
 		while True:
 			if self.num_flashes == -1:
 				self.PWM.duty_u16(self.intensity)

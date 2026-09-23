@@ -18,15 +18,15 @@ class BatteryMonitor:
 
 	def __init__(
 		self,
-		analog_pin,
-		led_pin,
+		analog_pin: int,
+		led_pin: int,
 		*,
-		empty_voltage=3.2,
-		full_voltage=4.2,
-		divider_ratio=2.0,
-		adc_reference_voltage=3.3,
-		check_interval_ms=10000,
-	):
+		empty_voltage: float = 3.2,
+		full_voltage: float = 4.2,
+		divider_ratio: float = 2.0,
+		adc_reference_voltage: float = 3.3,
+		check_interval_ms: int = 10000,
+	) -> None:
 		if full_voltage <= empty_voltage:
 			raise ValueError("full_voltage must be greater than empty_voltage")
 		if divider_ratio <= 0:
@@ -51,7 +51,7 @@ class BatteryMonitor:
 		self.charge_fraction = 0.0
 		self.task = asyncio.create_task(self.monitor_loop())
 
-	def read_voltage(self):
+	def read_voltage(self) -> float:
 		"""Read and return the battery voltage in volts."""
 		raw_value = self.adc.read_u16()
 		return (
@@ -61,7 +61,7 @@ class BatteryMonitor:
 			* self.divider_ratio
 		)
 
-	def update(self):
+	def update(self) -> float:
 		"""Measure the battery and immediately update the LED intensity."""
 		self.voltage = self.read_voltage()
 		charge = (self.voltage - self.empty_voltage) / (
@@ -71,13 +71,13 @@ class BatteryMonitor:
 		self.led.duty_u16(int(self.charge_fraction * self.PWM_MAX))
 		return self.voltage
 
-	async def monitor_loop(self):
+	async def monitor_loop(self) -> None:
 		"""Continuously refresh the voltage and charge LED."""
 		while True:
 			self.update()
 			await asyncio.sleep_ms(self.check_interval_ms)
 
-	def deinit(self):
+	def deinit(self) -> None:
 		"""Stop monitoring and release the PWM output."""
 		self.task.cancel()
 		self.led.duty_u16(0)

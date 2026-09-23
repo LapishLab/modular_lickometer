@@ -18,11 +18,11 @@ _REASONS = {
 
 
 class HTTPServer:
-	def __init__(self, port=None):
+	def __init__(self, port: int | None = None) -> None:
 		self.port = config.HTTP_SERVER_PORT if port is None else port
 		self._server = None
 
-	async def start(self):
+	async def start(self) -> bool:
 		network.hostname(config.DEVICE_HOSTNAME)
 		ip = await connect_to_wifi(config.WIFI_SSID, config.WIFI_PASSWORD)
 		if ip is None:
@@ -36,7 +36,7 @@ class HTTPServer:
 		))
 		return True
 
-	async def stop(self):
+	async def stop(self) -> None:
 		if self._server is not None:
 			self._server.close()
 			await self._server.wait_closed()
@@ -44,7 +44,11 @@ class HTTPServer:
 			print("HTTP server stopped")
 		disconnect_wifi()
 
-	async def _handle_client(self, reader, writer):
+	async def _handle_client(
+		self,
+		reader: asyncio.StreamReader,
+		writer: asyncio.StreamWriter,
+	) -> None:
 		try:
 			request_line = await reader.readline()
 			if not request_line:
@@ -84,7 +88,7 @@ class HTTPServer:
 			except Exception:
 				pass
 
-	def _list_files(self):
+	def _list_files(self) -> list:
 		files = []
 		for name in os.listdir(config.DATA_FOLDER):
 			if not name.endswith(".csv"):
@@ -97,7 +101,11 @@ class HTTPServer:
 		files.sort(key=lambda item: item["name"])
 		return files
 
-	async def _send_file(self, writer, filename):
+	async def _send_file(
+		self,
+		writer: asyncio.StreamWriter,
+		filename: str,
+	) -> None:
 		# Recorded filenames contain no path separators. Keep the check strict so
 		# the API can never expose files outside DATA_FOLDER.
 		if not filename.endswith(".csv") or "/" in filename or "\\" in filename:
@@ -133,7 +141,12 @@ class HTTPServer:
 		finally:
 			file.close()
 
-	async def _send_json(self, writer, status, payload):
+	async def _send_json(
+		self,
+		writer: asyncio.StreamWriter,
+		status: int,
+		payload: dict,
+	) -> None:
 		body = json.dumps(payload).encode()
 		reason = _REASONS.get(status, "")
 		header = (

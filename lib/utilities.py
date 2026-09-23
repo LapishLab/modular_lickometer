@@ -1,4 +1,4 @@
-def print_error(error_title, exception=None):
+def print_error(error_title: str, exception: Exception | None = None) -> None:
 	"""Print detailed error information"""
 	print(f"\n{'='*60}")
 	print(f"ERROR: {error_title}")

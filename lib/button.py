@@ -4,7 +4,7 @@ import asyncio
 class DebouncedButton:
 	"""A falling-edge button whose debounce state is self-contained."""
 
-	def __init__(self, pin_number, debounce_ms=50):
+	def __init__(self, pin_number: int, debounce_ms: int = 50) -> None:
 		self._pin = Pin(pin_number, Pin.IN, Pin.PULL_UP)
 		self._debounce_ms = debounce_ms
 		self._interrupt = asyncio.ThreadSafeFlag()
@@ -17,7 +17,7 @@ class DebouncedButton:
 		)
 		self._debounce_task = asyncio.create_task(self._process_interrupts())
 
-	async def _process_interrupts(self):
+	async def _process_interrupts(self) -> None:
 		while True:
 			await self._interrupt.wait()
 			self.pressed.set()

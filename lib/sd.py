@@ -2,7 +2,7 @@ import vfs
 from config import SD_DATA_PINS, SD_CLK, SD_CMD, SD_DETECT, DATA_FOLDER
 import os
 
-def _is_mounted(mount_point):
+def _is_mounted(mount_point: str) -> bool:
 	try:
 		# An unmounted directory belongs to the same filesystem as its parent, so
 		# both paths have identical filesystem statistics. A mounted SD card has
@@ -13,7 +13,7 @@ def _is_mounted(mount_point):
 	except OSError:
 		return False
 
-def mount_data_folder():
+def mount_data_folder() -> None:
 	if _is_mounted(DATA_FOLDER):
 		print(f"Data folder already exists: {DATA_FOLDER}.")
 		return

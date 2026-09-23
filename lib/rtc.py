@@ -21,7 +21,14 @@ from machine import I2C, Pin
 import time
 
 class PCF8523:
-    def __init__(self, i2c=None, scl_pin=6, sda_pin=5, i2c_freq=400000, addr=0x68):
+    def __init__(
+        self,
+        i2c: I2C | None = None,
+        scl_pin: int = 6,
+        sda_pin: int = 5,
+        i2c_freq: int = 400000,
+        addr: int = 0x68,
+    ) -> None:
         """
         Initialize PCF8523 RTC
         
@@ -40,23 +47,23 @@ class PCF8523:
         self.addr = addr
 
     
-    def _read_register(self, reg):
+    def _read_register(self, reg: int) -> int:
         """Read a single register"""
         return self.i2c.readfrom_mem(self.addr, reg, 1)[0]
     
-    def _write_register(self, reg, value):
+    def _write_register(self, reg: int, value: int) -> None:
         """Write a single register"""
         self.i2c.writeto_mem(self.addr, reg, bytes([value]))
     
-    def _bcd2dec(self, bcd):
+    def _bcd2dec(self, bcd: int) -> int:
         """Convert BCD (Binary Coded Decimal) to decimal"""
         return (bcd >> 4) * 10 + (bcd & 0x0F)
     
-    def _dec2bcd(self, dec):
+    def _dec2bcd(self, dec: int) -> int:
         """Convert decimal to BCD (Binary Coded Decimal)"""
         return ((dec // 10) << 4) | (dec % 10)
     
-    def get_time(self):
+    def get_time(self) -> tuple:
         """
         Read time from RTC
         
@@ -89,7 +96,16 @@ class PCF8523:
         
         return (full_year, month, day, hours, minutes, seconds, weekday, yearday)
     
-    def set_time(self, year, month, day, hour, minute, second, weekday=0):
+    def set_time(
+        self,
+        year: int,
+        month: int,
+        day: int,
+        hour: int,
+        minute: int,
+        second: int,
+        weekday: int = 0,
+    ) -> None:
         """
         Set time on RTC
         
@@ -124,7 +140,7 @@ class PCF8523:
             year_val
         ]))
     
-    def get_timestamp(self):
+    def get_timestamp(self) -> str:
         """
         Get current time as a formatted string
         
@@ -136,7 +152,7 @@ class PCF8523:
             year, month, day, hour, minute, second
         )
     
-    def get_timestamp_filename(self):
+    def get_timestamp_filename(self) -> str:
         """
         Get timestamp suitable for filenames
         
@@ -148,12 +164,12 @@ class PCF8523:
             year, month, day, hour, minute, second
         )
     
-    def is_running(self):
+    def is_running(self) -> bool:
         """Check if RTC oscillator is running"""
         ctrl1 = self._read_register(0x00)
         return not (ctrl1 & 0x20)  # Bit 5: stop bit
     
-    def sync_time(self, ntp=False):
+    def sync_time(self, ntp: bool = False) -> None:
         """
         Sync RTC with system time or NTP
         

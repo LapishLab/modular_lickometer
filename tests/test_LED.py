@@ -12,7 +12,7 @@ rgb_pwr.value(1) # Pull high to turn power on
 pixel = neopixel.NeoPixel(machine.Pin(1), 1)
 
 # Helper function to clear the pixel before exiting
-def clear_led():
+def clear_led() -> None:
 	pixel[0] = (0, 0, 0)
 	pixel.write()
 

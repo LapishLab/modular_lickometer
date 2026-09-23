@@ -12,7 +12,7 @@ from battery import BatteryMonitor
 from machine import TouchPad, Pin
 from mode_handler import ModeDefinition, ModeHandler, ModeType
 
-async def main():
+async def main() -> None:
 	await asyncio.sleep(5)
 	led_rec = BLINKING_LED(config.LED_REC_PIN)
 	led_trans = BLINKING_LED(config.LED_TRANSFER_PIN)

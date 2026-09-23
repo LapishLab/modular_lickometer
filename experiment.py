@@ -1,9 +1,15 @@
 from data_writer import DataWriter
+from machine import TouchPad
+from rtc import PCF8523
 import asyncio
 import config
 import time
 
-async def run_experiment(stop_event, rtc, touch_array):
+async def run_experiment(
+	stop_event: asyncio.Event,
+	rtc: PCF8523,
+	touch_array: list[TouchPad],
+) -> None:
 	print('Running experiment')
 	filename = rtc.get_timestamp_filename()
 	start_time = time.ticks_ms()
@@ -11,7 +17,7 @@ async def run_experiment(stop_event, rtc, touch_array):
 
 	try:
 		while not stop_event.is_set():
-			capsense_values = [touch.read() for touch in touch_array]
+			capsense_values: list[int] = [touch.read() for touch in touch_array]
 			elapsed_ms = time.ticks_diff(time.ticks_ms(), start_time)
 			t = elapsed_ms / 1000.0
 			writer.write(t, capsense_values)
