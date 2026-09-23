@@ -8,6 +8,7 @@ from experiment import run_experiment
 from button import DebouncedButton
 from http_server import HTTPServer
 from led import BLINKING_LED
+from battery import BatteryMonitor
 from machine import TouchPad, Pin
 
 async def main():
@@ -15,6 +16,10 @@ async def main():
 	led_rec = BLINKING_LED(config.LED_REC_PIN)
 	led_trans = BLINKING_LED(config.LED_TRANSFER_PIN)
 	led_err = BLINKING_LED(config.LED_ERROR_PIN)
+	battery = BatteryMonitor(
+		config.BATTERY_VOLTAGE_PIN,
+		config.LOW_BATTERY_LED_PIN,
+	)
 	button = DebouncedButton(config.STOP_BUTTON_PIN)
 	rtc = PCF8523(scl_pin=config.I2C_SCL, sda_pin=config.I2C_SDA)
 	touch_array = [TouchPad(Pin(p)) for p in config.TOUCH_PINS]

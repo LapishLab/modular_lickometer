@@ -12,6 +12,10 @@ I2C_SDA = 8
 LED_REC_PIN = 15
 LED_TRANSFER_PIN = 14
 LED_ERROR_PIN = 16
+LOW_BATTERY_LED_PIN = 10
+
+# Battery voltage monitoring pin
+BATTERY_VOLTAGE_PIN = 8
 
 # Input pins
 TOUCH_PINS = [1, 4]  # List of touch pins
