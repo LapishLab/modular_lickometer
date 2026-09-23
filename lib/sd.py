@@ -3,17 +3,14 @@ from config import SD_DATA_PINS, SD_CLK, SD_CMD, SD_DETECT, DATA_FOLDER
 import os
 
 def _is_mounted(mount_point):
-	# Check if the mount point exists and is a directory
-	# TODO: This could be misleading if the directory exists, but the SD card is not actually mounted.
 	try:
-		# Get file/directory status bits
-		mode = os.stat(mount_point)[0]
-		
-		# In MicroPython, directory mode bits usually match standard S_IFDIR (0x4000)
-		# Check if the path is a directory (0x4000) rather than a regular file (0x8000)
-		return bool(mode & 0x4000)
+		# An unmounted directory belongs to the same filesystem as its parent, so
+		# both paths have identical filesystem statistics. A mounted SD card has
+		# its own filesystem and therefore different statistics.
+		path = mount_point.rstrip("/")
+		parent = path.rsplit("/", 1)[0] or "/"
+		return os.statvfs(path) != os.statvfs(parent)
 	except OSError:
-		# Path does not exist
 		return False
 
 def mount_data_folder():
