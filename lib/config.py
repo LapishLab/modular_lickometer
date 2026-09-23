@@ -1,8 +1,8 @@
-# SD card pins
-SPI_SCK  = 12
-SPI_MOSI = 11
-SPI_MISO = 13
-SD_CS    = 10
+# SD card pins (native 4-bit SDMMC/SDIO, D0 through D3)
+SD_DATA_PINS = (40, 41, 36, 37)
+SD_CLK = 39
+SD_CMD = 38
+SD_DETECT = 42  # Active low: 0 means a card is inserted
 
 # RTC pins
 I2C_SCL = 9
