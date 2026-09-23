@@ -19,8 +19,7 @@ async def run_experiment(
 		while not stop_event.is_set():
 			capsense_values: list[int] = [touch.read() for touch in touch_array]
 			elapsed_ms = time.ticks_diff(time.ticks_ms(), start_time)
-			t = elapsed_ms / 1000.0
-			writer.write(t, capsense_values)
+			writer.write(elapsed_ms, capsense_values)
 			await asyncio.sleep_ms(config.SAMPLE_PERIOD_MS)
 	finally:
 		print("Recording stopped, flushing data...")
