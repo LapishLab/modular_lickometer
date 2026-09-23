@@ -6,6 +6,7 @@ from sd import mount_data_folder
 from utilities import print_error
 from experiment import run_experiment
 from button import DebouncedButton
+from http_server import HTTPServer
 from led import BLINKING_LED
 from machine import TouchPad, Pin
 
@@ -18,6 +19,7 @@ async def main():
 	rtc = PCF8523(scl_pin=config.I2C_SCL, sda_pin=config.I2C_SDA)
 	touch_array = [TouchPad(Pin(p)) for p in config.TOUCH_PINS]
 	mount_data_folder()
+	server = HTTPServer()
 
 	print("Starting Main Loop")
 
@@ -25,7 +27,9 @@ async def main():
 	print("pending")
 	while(True):
 		led_rec.num_flashes = 1
+		await server.start()
 		await button.pressed.wait()
+		await server.stop()
 		led_rec.num_flashes = 0
 		print("Starting recording task")
 		stop_event = asyncio.Event()

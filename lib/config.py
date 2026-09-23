@@ -23,11 +23,13 @@ DATA_FOLDER = "/data"
 # Sample period in milliseconds
 SAMPLE_PERIOD_MS = 10
 
-# WIFI info
-WIFI_SSID = "TP"
-WIFI_PASSWORD = "[REMOVED]"
-# WIFI_SSID = "Short"
-# WIFI_PASSWORD = "[REMOVED]"
+# Wi-Fi credentials are provisioned separately and are not tracked by Git.
+from wifi_credentials import WIFI_SSID, WIFI_PASSWORD
+
+# Network identity and HTTP file server
+# DEVICE_HOSTNAME must be unique for every lickometer on the network.
+DEVICE_HOSTNAME = "lickometer-01"
+HTTP_SERVER_PORT = 80
 
 TCP_SERVER_HOST = "10.247.178.229"
 TCP_SERVER_PORT = 5000

@@ -17,3 +17,29 @@ import hardware
 from utilities import print_error
 asyncio.run(hardware.initialize())
 hardware.clock.sync_time() #Use the correct internal ESP32 clock to set the external RTC
+
+## HTTP API
+
+Before copying the project to a device, copy `lib/wifi_credentials.example.py`
+to `lib/wifi_credentials.py` and enter the private network credentials. The
+credentials file is ignored by Git and must be provisioned separately.
+
+While the device is idle it connects to Wi-Fi and serves HTTP using the unique
+`DEVICE_HOSTNAME` and `HTTP_SERVER_PORT` configured in `lib/config.py`.
+
+Endpoints:
+
+- `GET /api/files` - completed CSV files and their sizes
+- `GET /api/files/<filename>` - download a completed CSV file
+
+For example:
+
+```powershell
+Invoke-RestMethod http://lickometer-01.local/api/files
+Invoke-WebRequest http://lickometer-01.local/api/files/2026_09_22_143500.csv -OutFile recording.csv
+```
+
+The physical start button stops the HTTP server and powers down Wi-Fi before
+recording. Wi-Fi remains off for the entire recording. The device reconnects and
+restarts the file server after the physical stop button is pressed and the CSV
+has been closed.
