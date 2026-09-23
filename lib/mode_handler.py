@@ -1,88 +1,74 @@
 """Route device inputs to modes and their shared stop events."""
 
-from asyncio import ThreadSafeFlag, Event, create_task
+from asyncio import ThreadSafeFlag, Event, create_task, Task
 
 class ModeType:
 	RECORDING = "recording"
 
 class ModeDefinition:
-	def __init__(self, mode: str, start_on: tuple, stop_on: tuple) -> None:
-		self.mode = mode
-		self.start_on = start_on
-		self.stop_on = stop_on
-
-
-class ModeActivation:
-	def __init__(self, definition: ModeDefinition) -> None:
-		self.mode = definition.mode
+	def __init__(self, type: str, start_trig: tuple[ThreadSafeFlag, ...], stop_trig: tuple[ThreadSafeFlag, ...]) -> None:
+		self.type = type
+		self.start_trig = start_trig
+		self.stop_trig = stop_trig
 		self.stop_event = Event()
-		self._definition = definition
-
+		
 
 class ModeHandler:
-	def __init__(self, definitions: tuple) -> None:
-		self._definitions = definitions
-		self._ready_for_event = False
-		self._current_activation = None
+	def __init__(self, modes: tuple[ModeDefinition, ...]) -> None:
+		self._modes = modes
+		self._current_mode = None
 		self._activation_ready = Event()
-		self._watch_tasks = self._create_watch_tasks()
+		self._watch_tasks = self._create_watchers()
+		self._routing_enabled = False
 
-	def _create_watch_tasks(self) -> list:
-		all_signals = []
-		for mode_def in self._definitions:
-			all_signals.extend(mode_def.start_on)
-			all_signals.extend(mode_def.stop_on)
+	def _create_watchers(self) -> list[Task]:
+		triggers = []
+		for m in self._modes:
+			triggers.extend(m.start_trig)
+			triggers.extend(m.stop_trig)
 
-		watch_tasks = []
+		watchers = []
 		already_watched = []
-		for signal in all_signals:
-			if not self._contains(already_watched, signal):
-				already_watched.append(signal)
-				watch_tasks.append(
-					create_task(self._watch(signal))
-				)
-
-		return watch_tasks
+		for t in triggers:
+			if t not in already_watched:
+				already_watched.append(t)
+				watchers.append(create_task(self._watch(t)))
+		return watchers
 
 	async def _watch(self, signal: ThreadSafeFlag) -> None:
 		while True:
 			await signal.wait()
 			self._route(signal)
 
-	def _route(self, signal: ThreadSafeFlag) -> None:
+	def _route(self, trigger: ThreadSafeFlag) -> None:
 		"""Route a signal to a new mode or the active mode's stop event."""
-		if not self._ready_for_event:
+		if not self._routing_enabled:
 			return
-		
-		if self._current_activation is None:
-			for mode_def in self._definitions:
-				if self._contains(mode_def.start_on, signal):
-					self._current_activation = ModeActivation(mode_def)
+		if self._current_mode is None:
+			for m in self._modes:
+				if trigger in m.start_trig:
+					self._current_mode = m
 					self._activation_ready.set()
 					return
 		else:
-			if self._contains(self._current_activation._definition.stop_on, signal):
-				self._current_activation.stop_event.set()
-			else:
-				print("Ignoring input while in {}".format(self._current_activation.mode))
-			return
+			if trigger in self._current_mode.stop_trig:
+				self._current_mode.stop_event.set()
 
-	def _contains(self, signals: list | tuple, target: object) -> bool:
-		return any(target is signal for signal in signals)
-
-	async def wait_for_mode(self) -> ModeActivation:
+	async def wait(self) -> ModeDefinition:
 		"""Wait until an input activates a mode."""
-		self._ready_for_event = True
+		self._routing_enabled = True
 		await self._activation_ready.wait()
 		self._activation_ready.clear()
 
-		if self._current_activation is None:
+		if self._current_mode is None:
 			raise RuntimeError("No active mode after activation ready. This should have been set during routing.")
 
-		return self._current_activation
+		return self._current_mode
 
 	def end_mode(self) -> None:
 		"""Mark an activation complete so another mode can start."""
-		self._current_activation = None
-		self._ready_for_event = False
+		self._routing_enabled = False
+		if self._current_mode is not None:
+			self._current_mode.stop_event.clear()
+			self._current_mode = None
 		

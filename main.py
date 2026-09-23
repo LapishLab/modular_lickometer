@@ -23,9 +23,9 @@ async def main() -> None:
 	server = HTTPServer()
 	handler = ModeHandler((
 		ModeDefinition(
-			mode=ModeType.RECORDING,
-			start_on=(buttons.start.pressed,),
-			stop_on=(buttons.stop.pressed,),
+			type=ModeType.RECORDING,
+			start_trig=(buttons.start.pressed,),
+			stop_trig=(buttons.stop.pressed,),
 		),
 	))
 
@@ -35,16 +35,16 @@ async def main() -> None:
 		states.current_status = states.Status.PENDING
 		leds.recording.set_blinks(1)
 		await server.start()
-		activation = await handler.wait_for_mode()
+		mode = await handler.wait()
 
 		try:
 			await server.stop()
 			await leds.recording.set_constant(False)
-			if activation.mode == ModeType.RECORDING:
+			if mode.type == ModeType.RECORDING:
 				await leds.recording.set_constant(True)
-				await run_experiment(activation.stop_event, rtc, touch_array)
+				await run_experiment(mode.stop_event, rtc, touch_array)
 			else:
-				raise ValueError("Unknown mode: {}".format(activation.mode))
+				raise ValueError("Unknown mode: {}".format(mode.type))
 		finally:
 			handler.end_mode()
 
