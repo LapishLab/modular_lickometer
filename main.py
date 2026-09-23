@@ -10,6 +10,7 @@ from http_server import HTTPServer
 from led import BLINKING_LED
 from battery import BatteryMonitor
 from machine import TouchPad, Pin
+from mode_handler import ModeDefinition, ModeHandler, ModeType
 
 async def main():
 	await asyncio.sleep(5)
@@ -25,27 +26,32 @@ async def main():
 	touch_array = [TouchPad(Pin(p)) for p in config.TOUCH_PINS]
 	mount_data_folder()
 	server = HTTPServer()
+	handler = ModeHandler((
+		ModeDefinition(
+			mode=ModeType.RECORDING,
+			start_on=(button.pressed,),
+			stop_on=(button.pressed,),
+		),
+	))
 
 	print("Starting Main Loop")
 
-	states.current_status = states.Status.PENDING
-	print("pending")
-	while(True):
+	while True:
+		states.current_status = states.Status.PENDING
 		led_rec.num_flashes = 1
 		await server.start()
-		await button.pressed.wait()
-		await server.stop()
-		led_rec.num_flashes = 0
-		print("Starting recording task")
-		stop_event = asyncio.Event()
-		recording_task = asyncio.create_task(
-			run_experiment(stop_event, rtc, touch_array)
-		)
+		activation = await handler.wait_for_mode()
 
-		await button.pressed.wait()
-		print("Indicating that recording should stop")
-		stop_event.set()
-		await recording_task
+		try:
+			await server.stop()
+			led_rec.num_flashes = 0
+
+			if activation.mode == ModeType.RECORDING:
+				await run_experiment(activation.stop_event, rtc, touch_array)
+			else:
+				raise ValueError("Unknown mode: {}".format(activation.mode))
+		finally:
+			handler.end_mode()
 
 
 if __name__ == "__main__":
