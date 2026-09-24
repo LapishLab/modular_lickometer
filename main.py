@@ -20,7 +20,7 @@ async def main() -> None:
 	rtc = PCF8523(scl_pin=config.I2C_SCL, sda_pin=config.I2C_SDA)
 	touch_array = [TouchPad(Pin(p)) for p in config.TOUCH_PINS]
 	mount_data_folder()
-	server = HTTPServer()
+	server = HTTPServer(battery)
 	handler = ModeHandler((
 		ModeDefinition(
 			type=ModeType.RECORDING,

@@ -6,6 +6,7 @@ import network
 import os
 
 import config
+from battery import BatteryMonitor
 from wifi import connect_to_wifi, disconnect_wifi
 
 
@@ -14,11 +15,17 @@ _REASONS = {
 	400: "Bad Request",
 	404: "Not Found",
 	405: "Method Not Allowed",
+	500: "Internal Server Error",
 }
 
 
 class HTTPServer:
-	def __init__(self, port: int | None = None) -> None:
+	def __init__(
+		self,
+		battery: BatteryMonitor,
+		port: int | None = None,
+	) -> None:
+		self.battery = battery
 		self.port = config.HTTP_SERVER_PORT if port is None else port
 		self._server = None
 
@@ -75,10 +82,19 @@ class HTTPServer:
 					"hostname": config.DEVICE_HOSTNAME,
 					"files": self._list_files(),
 				})
+			elif method == "GET" and path == "/api/power":
+				await self._send_json(writer, 200, self._get_power())
 			elif method == "GET" and path.startswith("/api/files/"):
 				filename = path[len("/api/files/"):]
 				await self._send_file(writer, filename)
-			elif path == "/api/files":
+			elif method == "DELETE" and path.startswith("/api/files/"):
+				filename = path[len("/api/files/"):]
+				await self._delete_file(writer, filename)
+			elif (
+				path == "/api/files"
+				or path.startswith("/api/files/")
+				or path == "/api/power"
+			):
 				await self._send_json(writer, 405, {"error": "method not allowed"})
 			else:
 				await self._send_json(writer, 404, {"error": "not found"})
@@ -103,6 +119,39 @@ class HTTPServer:
 			files.append({"name": name, "size": size})
 		files.sort(key=lambda item: item["name"])
 		return files
+
+	def _get_power(self) -> dict:
+		"""Take a fresh battery reading and return its charge estimate."""
+		voltage = self.battery.update()
+		return {
+			"hostname": config.DEVICE_HOSTNAME,
+			"voltage": round(voltage, 3),
+			"charge_percent": round(self.battery.charge_fraction * 100, 1),
+		}
+
+	async def _delete_file(
+		self,
+		writer: asyncio.StreamWriter,
+		filename: str,
+	) -> None:
+		"""Delete one completed recording after validating its filename."""
+		if not filename.endswith(".csv") or "/" in filename or "\\" in filename:
+			await self._send_json(writer, 404, {"error": "file not found"})
+			return
+
+		path = config.DATA_FOLDER + "/" + filename
+		try:
+			os.stat(path)
+		except OSError:
+			await self._send_json(writer, 404, {"error": "file not found"})
+			return
+		try:
+			os.remove(path)
+		except OSError:
+			await self._send_json(writer, 500, {"error": "could not delete file"})
+			return
+
+		await self._send_json(writer, 200, {"deleted": filename})
 
 	async def _send_file(
 		self,
