@@ -71,7 +71,10 @@ class HTTPServer:
 
 			path = target.split("?", 1)[0]
 			if method == "GET" and path == "/api/files":
-				await self._send_json(writer, 200, {"files": self._list_files()})
+				await self._send_json(writer, 200, {
+					"hostname": config.DEVICE_HOSTNAME,
+					"files": self._list_files(),
+				})
 			elif method == "GET" and path.startswith("/api/files/"):
 				filename = path[len("/api/files/"):]
 				await self._send_file(writer, filename)

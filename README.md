@@ -29,7 +29,8 @@ While the device is idle it connects to Wi-Fi and serves HTTP using the unique
 
 Endpoints:
 
-- `GET /api/files` - completed CSV files and their sizes
+- `GET /api/files` - device hostname plus completed CSV files and their sizes;
+  for example, `{"hostname":"lickometer-01","files":[{"name":"2026_09_22_143500.csv","size":1234}]}`
 - `GET /api/files/<filename>` - download a completed CSV file
 
 For example:
