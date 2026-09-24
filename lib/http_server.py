@@ -7,6 +7,7 @@ import os
 
 import config
 from battery import BatteryMonitor
+from file_checksum import calculate_file_crc32
 from wifi import connect_to_wifi, disconnect_wifi
 
 
@@ -15,6 +16,7 @@ _REASONS = {
 	400: "Bad Request",
 	404: "Not Found",
 	405: "Method Not Allowed",
+	409: "Conflict",
 	500: "Internal Server Error",
 }
 
@@ -76,7 +78,9 @@ class HTTPServer:
 				await self._send_json(writer, 400, {"error": "too many headers"})
 				return
 
-			path = target.split("?", 1)[0]
+			target_parts = target.split("?", 1)
+			path = target_parts[0]
+			query = target_parts[1] if len(target_parts) == 2 else ""
 			if method == "GET" and path == "/api/files":
 				await self._send_json(writer, 200, {
 					"hostname": config.DEVICE_HOSTNAME,
@@ -89,7 +93,7 @@ class HTTPServer:
 				await self._send_file(writer, filename)
 			elif method == "DELETE" and path.startswith("/api/files/"):
 				filename = path[len("/api/files/"):]
-				await self._delete_file(writer, filename)
+				await self._delete_file(writer, filename, query)
 			elif (
 				path == "/api/files"
 				or path.startswith("/api/files/")
@@ -133,25 +137,68 @@ class HTTPServer:
 		self,
 		writer: asyncio.StreamWriter,
 		filename: str,
+		query: str,
 	) -> None:
-		"""Delete one completed recording after validating its filename."""
+		"""Delete a recording only when size and CRC32 match the requester."""
 		if not filename.endswith(".csv") or "/" in filename or "\\" in filename:
 			await self._send_json(writer, 404, {"error": "file not found"})
 			return
+		verification = self._parse_delete_verification(query)
+		if verification is None:
+			await self._send_json(writer, 400, {
+				"error": "size and eight-digit crc32 are required",
+			})
+			return
+		expected_size, expected_crc32 = verification
 
 		path = config.DATA_FOLDER + "/" + filename
 		try:
-			os.stat(path)
+			device_size = os.stat(path)[6]
 		except OSError:
 			await self._send_json(writer, 404, {"error": "file not found"})
 			return
+		if device_size != expected_size:
+			await self._send_json(writer, 409, {"error": "file size mismatch"})
+			return
+
+		try:
+			device_crc32 = calculate_file_crc32(path)
+		except OSError:
+			await self._send_json(writer, 500, {"error": "could not read file"})
+			return
+		if device_crc32 != expected_crc32:
+			await self._send_json(writer, 409, {"error": "file crc32 mismatch"})
+			return
+
 		try:
 			os.remove(path)
 		except OSError:
 			await self._send_json(writer, 500, {"error": "could not delete file"})
 			return
 
-		await self._send_json(writer, 200, {"deleted": filename})
+		await self._send_json(writer, 200, {
+			"deleted": filename,
+			"size": device_size,
+			"crc32": "{:08x}".format(device_crc32),
+		})
+
+	def _parse_delete_verification(self, query: str) -> tuple | None:
+		"""Parse the expected size and CRC32 from a DELETE query string."""
+		values = {}
+		for field in query.split("&"):
+			key, separator, value = field.partition("=")
+			if separator and key not in values:
+				values[key] = value
+
+		crc32_text = values.get("crc32", "")
+		try:
+			size = int(values.get("size", ""))
+			crc32 = int(crc32_text, 16)
+		except ValueError:
+			return None
+		if size < 0 or len(crc32_text) != 8 or crc32 < 0 or crc32 > 0xFFFFFFFF:
+			return None
+		return size, crc32
 
 	async def _send_file(
 		self,

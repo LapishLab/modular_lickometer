@@ -32,7 +32,8 @@ Endpoints:
 - `GET /api/files` - device hostname plus completed CSV files and their sizes;
   for example, `{"hostname":"lickometer-01","files":[{"name":"2026_09_22_143500.csv","size":1234}]}`
 - `GET /api/files/<filename>` - download a completed CSV file
-- `DELETE /api/files/<filename>` - permanently delete a completed CSV file
+- `DELETE /api/files/<filename>?size=<bytes>&crc32=<8-hex-digits>` - permanently
+  delete a completed CSV file only when its size and CRC32 match
 - `GET /api/power` - device hostname, battery voltage, and estimated charge
   percentage; for example,
   `{"hostname":"lickometer-01","voltage":3.87,"charge_percent":67.0}`
@@ -42,7 +43,7 @@ For example:
 ```powershell
 Invoke-RestMethod http://lickometer-01.local/api/files
 Invoke-WebRequest http://lickometer-01.local/api/files/2026_09_22_143500.csv -OutFile recording.csv
-Invoke-RestMethod -Method Delete http://lickometer-01.local/api/files/2026_09_22_143500.csv
+Invoke-RestMethod -Method Delete "http://lickometer-01.local/api/files/2026_09_22_143500.csv?size=1234&crc32=89abcdef"
 Invoke-RestMethod http://lickometer-01.local/api/power
 ```
 
