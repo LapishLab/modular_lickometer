@@ -8,7 +8,7 @@ class DataWriter:
 		print(f"Creating data file: {file_path}")
 		self.file = open(file_path, "w")
 
-	def write(self, row: tuple[int,int,int]) -> None:
+	def write(self, row: tuple[int, ...]) -> None:
 		"""Write a timestamp and one or more values to the file."""
 		self.file.write(",".join(str(value) for value in row) + "\n")
 

@@ -21,13 +21,13 @@ class Sipper:
         self.led.duty_u16(0)
         (self.led_min_diff, self.led_diff_span) = self.calc_LED_mapping()
 
-    def read(self, update_led: bool = True) -> int:
+    def read(self, update_led: bool = True) -> tuple[int,int]:
         cap_val: int = self.cap.read()
         ref_val: int = self.ref.read()
         diff = cap_val - ref_val
         if update_led:
             self.update_LED(diff)
-        return diff
+        return (cap_val, ref_val)
 
     def update_LED(self, diff: int) -> None:
         relative_diff: int = diff - self.led_min_diff
@@ -69,7 +69,8 @@ class Sipper:
         avg: float = 0.0
         squared_diff_sum: float = 0.0
         for sample_number in range(1, n + 1):
-            diff: int = self.read(update_led=False)
+            (c, r) = self.read(update_led=False)
+            diff = c-r
             delta: float = diff - avg
             avg += delta / sample_number
             squared_diff_sum += delta * (diff - avg)

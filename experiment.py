@@ -19,9 +19,9 @@ async def run_experiment(
 	try:
 		while not stop_event.is_set():
 			elapsed_ms = time.ticks_diff(time.ticks_ms(), start_time)
-			left = sippers.left.read()
-			right = sippers.right.read()
-			writer.write((elapsed_ms, left, right))
+			(l, l_ref) = sippers.left.read()
+			(r, r_ref) = sippers.right.read()
+			writer.write((elapsed_ms, l, l_ref, r, r_ref))
 			await asyncio.sleep_ms(config.SAMPLE_PERIOD_MS)
 	finally:
 		print("Recording stopped, flushing data...")
