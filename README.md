@@ -1,22 +1,14 @@
-To set the time on the board run this on PC (Windows)
-Navigate to project folder (cd ....)
-%%%% RAN IN POWERSHELL %%%%%%%
-.\.venv\Scripts\activate.ps1 #Activate environment with mpremote
-mpremote rtc --set # Set ESP built in time from PC
-mpremote #Opened REPL
-%%% RAN ON MPREMOTE
-4. # Not sure why we need all these imports, but hardware.initialize failed otherwise
-import config
-import time
-import asyncio
-import os
-import states
-from states import Status
-from sd import mount_data_folder
-import hardware
-from utilities import print_error
-asyncio.run(hardware.initialize())
-hardware.clock.sync_time() #Use the correct internal ESP32 clock to set the external RTC
+## Set the external RTC
+
+From PowerShell in the project directory, set MicroPython's system clock from
+the PC and then copy that time to the PCF85263A:
+
+```powershell
+mpremote connect COM24 rtc --set
+mpremote connect COM24 run sync_rtc_to_board.py
+```
+
+Replace `COM24` if the board is assigned a different serial port.
 
 ## HTTP API
 
@@ -37,6 +29,10 @@ Endpoints:
 - `GET /api/power` - device hostname, battery voltage, and estimated charge
   percentage; for example,
   `{"hostname":"lickometer-01","voltage":3.87,"charge_percent":67.0}`
+
+New recordings are named `YYYY_MM_DD_HHmmss.csv`. File listings can also
+contain older recordings named `YYYY_MM_DD_HHmmss_cage_N.csv`; clients should
+accept both forms.
 
 For example:
 
