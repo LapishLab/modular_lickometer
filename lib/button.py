@@ -19,7 +19,6 @@ class DebouncedButton:
 		self._pin.irq(
 			trigger=Pin.IRQ_FALLING,
 			handler=lambda p:self._interrupt.set(),
-			hard=True,
 		)
 		self._debounce_task = asyncio.create_task(self._process_interrupts())
 
