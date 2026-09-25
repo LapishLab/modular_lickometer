@@ -10,6 +10,14 @@ mpremote connect COM24 run sync_rtc_to_board.py
 
 Replace `COM24` if the board is assigned a different serial port.
 
+## Custom MicroPython firmware
+
+The firmware application can use the native `touch_control` module to tune and
+diagnose the ESP32-S3 touch peripheral, including its timeout and hardware
+filter. See `native/README.md` for the API, pinned MicroPython and ESP-IDF
+versions, and build command. Building or flashing custom MicroPython is
+separate from copying this application to the board.
+
 ## HTTP API
 
 Before copying the project to a device, copy `lib/wifi_credentials.example.py`

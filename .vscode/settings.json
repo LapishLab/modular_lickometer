@@ -12,6 +12,14 @@
         "${workspaceFolder}/.venv/Lib/site-packages"
     ],
     "python.analysis.extraPaths": [
-        "${workspaceFolder}/lib"
+        "${workspaceFolder}/lib",
+        "${workspaceFolder}/typings"
+    ],
+    "python-envs.pythonProjects": [
+        {
+            "path": ".",
+            "envManager": "ms-python.python:venv",
+            "packageManager": "ms-python.python:pip"
+        }
     ]
 }
