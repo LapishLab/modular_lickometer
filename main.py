@@ -1,6 +1,6 @@
 import asyncio
 import config
-from rtc import PCF8523
+from rtc import PCF85263A
 import states
 from sd import mount_data_folder
 from utilities import print_error
@@ -18,7 +18,7 @@ async def main() -> None:
 	leds = Status_LEDS()
 	battery = BatteryMonitor()
 	buttons = UserButtons()
-	rtc = PCF8523(scl_pin=config.I2C_SCL, sda_pin=config.I2C_SDA)
+	rtc = PCF85263A(scl_pin=config.I2C_SCL, sda_pin=config.I2C_SDA)
 	sippers = SipperArray()
 	mount_data_folder()
 	server = HTTPServer(battery)
