@@ -57,7 +57,8 @@ Pinned build configuration:
 
 - MicroPython `v1.29.0`
 - ESP-IDF `v5.5.2`
-- board `ESP32_GENERIC_S3`
+- project board configuration based on `ESP32_GENERIC_S3`
+- FreeRTOS tick rate `1000 Hz`
 
 The generic board build auto-detects Quad-SPI PSRAM (e.g ESP32-S3-WROOM-1-N8R2) and adds it to the MicroPython heap. Modules with Octal-SPI PSRAM instead require `BOARD_VARIANT=SPIRAM_OCT`.
 
@@ -94,6 +95,8 @@ source ~/esp/esp-idf-v5.5.2/export.sh
 
 ### 3. Clone MicroPython and this repository
 
+We will download git repositories to `~/src`, but any directory can be used. These repositories can be deleted after building, but keeping them makes later updates and rebuilds faster.
+
 ```sh
 mkdir -p ~/src
 cd ~/src
@@ -103,6 +106,8 @@ git clone https://github.com/LapishLab/modular_lickometer.git
 ```
 
 ### 4. Build MicroPython with `touch_control`
+- The LICKOMETER_BOARD path tells MicroPython where to read our custom ESP-IDF configuration (e.g. CONFIG_FREERTOS_HZ=1000).
+- The LICKOMETER_CMAKE path tells MicroPython where to find and compile the touch_control native module.
 
 ```sh
 source ~/esp/esp-idf-v5.5.2/export.sh
@@ -113,22 +118,22 @@ make -C mpy-cross
 cd ~/src/micropython/ports/esp32
 make submodules
 
-LICKOMETER_CMAKE="$(realpath \
-    ~/src/modular_lickometer/native/micropython.cmake)"
-make BOARD=ESP32_GENERIC_S3 USER_C_MODULES="$LICKOMETER_CMAKE"
+LICKOMETER_BOARD="$(realpath \ ~/src/modular_lickometer/native/boards/MODULAR_LICKOMETER)"
+LICKOMETER_CMAKE="$(realpath \ ~/src/modular_lickometer/native/micropython.cmake)"
+make BOARD_DIR="$LICKOMETER_BOARD" USER_C_MODULES="$LICKOMETER_CMAKE"
 ```
 
 The combined image to flash is:
 
 ```text
-~/src/micropython/ports/esp32/build-ESP32_GENERIC_S3/firmware.bin
+~/src/micropython/ports/esp32/build-MODULAR_LICKOMETER/firmware.bin
 ```
 
 Confirm that it exists and optionally calculate a checksum:
 
 ```sh
-ls -lh ~/src/micropython/ports/esp32/build-ESP32_GENERIC_S3/firmware.bin
-sha256sum ~/src/micropython/ports/esp32/build-ESP32_GENERIC_S3/firmware.bin
+ls -lh ~/src/micropython/ports/esp32/build-MODULAR_LICKOMETER/firmware.bin
+sha256sum ~/src/micropython/ports/esp32/build-MODULAR_LICKOMETER/firmware.bin
 ```
 
 Flash this combined `firmware.bin` at address `0x0`. Building and flashing the
@@ -145,7 +150,9 @@ source ~/esp/esp-idf-v5.5.2/export.sh
 cd ~/src/micropython/ports/esp32
 LICKOMETER_CMAKE="$(realpath \
     ~/src/modular_lickometer/native/micropython.cmake)"
-make BOARD=ESP32_GENERIC_S3 USER_C_MODULES="$LICKOMETER_CMAKE"
+LICKOMETER_BOARD="$(realpath \
+    ~/src/modular_lickometer/native/boards/MODULAR_LICKOMETER)"
+make BOARD_DIR="$LICKOMETER_BOARD" USER_C_MODULES="$LICKOMETER_CMAKE"
 ```
 
 If the CMake module structure changes or a stale configuration causes problems,
@@ -153,8 +160,10 @@ clean and rebuild:
 
 ```sh
 cd ~/src/micropython/ports/esp32
-make BOARD=ESP32_GENERIC_S3 clean
+LICKOMETER_BOARD="$(realpath \
+    ~/src/modular_lickometer/native/boards/MODULAR_LICKOMETER)"
+make BOARD_DIR="$LICKOMETER_BOARD" clean
 LICKOMETER_CMAKE="$(realpath \
     ~/src/modular_lickometer/native/micropython.cmake)"
-make BOARD=ESP32_GENERIC_S3 USER_C_MODULES="$LICKOMETER_CMAKE"
+make BOARD_DIR="$LICKOMETER_BOARD" USER_C_MODULES="$LICKOMETER_CMAKE"
 ```
