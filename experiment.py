@@ -1,6 +1,6 @@
 from data_writer import DataWriter
 from machine import TouchPad
-from rtc import PCF8523
+from rtc import PCF85263A
 import asyncio
 import config
 import time
@@ -8,7 +8,7 @@ from capacitance import SipperArray
 
 async def run_experiment(
 	stop_event: asyncio.Event,
-	rtc: PCF8523,
+	rtc: PCF85263A,
 	sippers: SipperArray,
 ) -> None:
 	print('Running experiment')
