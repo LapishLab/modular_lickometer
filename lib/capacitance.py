@@ -2,6 +2,7 @@ import config
 import math
 from machine import TouchPad, Pin, PWM
 import time
+import touch_control
 
 class SipperArray:
     def __init__(self) -> None:
@@ -9,6 +10,9 @@ class SipperArray:
         r = config.TOUCH_R_Pins
         self.left = Sipper(cap_pin=l[0], ref_pin=l[1], led_pin=l[2])
         self.right = Sipper(cap_pin=r[0], ref_pin=r[1], led_pin=r[2])
+
+        touch_control.set_timeout(False, 0)
+        print('touch timeout disabled')
 
 
 BRIGHTNESS_MAX = 255
