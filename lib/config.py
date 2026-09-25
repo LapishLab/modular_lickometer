@@ -29,7 +29,7 @@ STOP_BUTTON_PIN = 18      # Press to stop recording
 DATA_FOLDER = "/data"
 
 # Sample period in milliseconds
-SAMPLE_PERIOD_MS = 10
+SAMPLE_PERIOD_MS: int = 10
 
 # Wi-Fi credentials are provisioned separately and are not tracked by Git.
 from wifi_credentials import WIFI_SSID, WIFI_PASSWORD
