@@ -8,6 +8,7 @@ import os
 import config
 from battery import BatteryMonitor, get_BatteryMonitor_instance
 from file_checksum import calculate_file_crc32
+from rtc import get_PCF85263A_instance
 from wifi import connect_to_wifi, disconnect_wifi
 from led import Blinking_LED, get_Status_LEDS_instance
 from states import Wireless as state
@@ -25,6 +26,7 @@ def get_HTTPServer_instance() -> HTTPServer:
 _REASONS = {
 	200: "OK",
 	400: "Bad Request",
+	413: "Payload Too Large",
 	404: "Not Found",
 	405: "Method Not Allowed",
 	409: "Conflict",
@@ -98,10 +100,25 @@ class HTTPServer:
 
 			method, target, _ = parts
 			# Headers are not currently used, but must be consumed before replying.
+			content_length = None
 			for _ in range(32):
 				line = await reader.readline()
 				if not line or line == b"\r\n" or line == b"\n":
 					break
+				header = line.decode().strip()
+				key, separator, value = header.partition(":")
+				if separator and key.lower() == "content-length":
+					if content_length is not None:
+						await self._send_json(writer, 400, {"error": "duplicate content length"})
+						return
+					try:
+						content_length = int(value.strip())
+					except ValueError:
+						await self._send_json(writer, 400, {"error": "invalid content length"})
+						return
+					if content_length < 0:
+						await self._send_json(writer, 400, {"error": "invalid content length"})
+						return
 			else:
 				await self._send_json(writer, 400, {"error": "too many headers"})
 				return
@@ -116,6 +133,8 @@ class HTTPServer:
 				})
 			elif method == "GET" and path == "/api/power":
 				await self._send_json(writer, 200, self._get_power())
+			elif method == "POST" and path == "/api/rtc":
+				await self._set_rtc(writer, reader, content_length)
 			elif method == "GET" and path.startswith("/api/files/"):
 				filename = path[len("/api/files/"):]
 				await self._send_file(writer, filename)
@@ -126,6 +145,7 @@ class HTTPServer:
 				path == "/api/files"
 				or path.startswith("/api/files/")
 				or path == "/api/power"
+				or path == "/api/rtc"
 			):
 				await self._send_json(writer, 405, {"error": "method not allowed"})
 			else:
@@ -160,6 +180,79 @@ class HTTPServer:
 			"voltage": round(voltage, 3),
 			"charge_percent": round(self.battery.charge_fraction * 100, 1),
 		}
+
+	async def _set_rtc(
+		self,
+		writer: asyncio.StreamWriter,
+		reader: asyncio.StreamReader,
+		content_length: int | None,
+	) -> None:
+		"""Set the external RTC from a bounded JSON calendar-time request."""
+		if content_length is None or content_length == 0:
+			await self._send_json(writer, 400, {"error": "JSON request body is required"})
+			return
+		if content_length > 1024:
+			await self._send_json(writer, 413, {"error": "request body exceeds 1024-byte limit"})
+			return
+
+		body = b""
+		while len(body) < content_length:
+			chunk = await reader.read(content_length - len(body))
+			if not chunk:
+				await self._send_json(writer, 400, {"error": "incomplete request body"})
+				return
+			body += chunk
+
+		try:
+			payload = json.loads(body.decode())
+		except (UnicodeError, ValueError):
+			await self._send_json(writer, 400, {"error": "invalid JSON body"})
+			return
+
+		fields = ("year", "month", "day", "hour", "minute", "second", "weekday")
+		required = fields[:-1]
+		if (
+			not isinstance(payload, dict)
+			or any(key not in payload for key in required)
+			or any(key not in fields for key in payload)
+			or any(type(value) is not int for value in payload.values())
+		):
+			await self._send_json(writer, 400, {"error": "invalid RTC fields"})
+			return
+		year = payload["year"]
+		month = payload["month"]
+		day = payload["day"]
+		if 1 <= month <= 12:
+			days_in_month = (31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
+			if month == 2 and (year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)):
+				max_day = 29
+			else:
+				max_day = days_in_month[month - 1]
+			if not 1 <= day <= max_day:
+				await self._send_json(writer, 400, {"error": "day is invalid for the selected month"})
+				return
+
+		try:
+			rtc = get_PCF85263A_instance()
+			rtc.set_time(
+				payload["year"],
+				payload["month"],
+				payload["day"],
+				payload["hour"],
+				payload["minute"],
+				payload["second"],
+				payload.get("weekday", 0),
+			)
+			timestamp = rtc.get_timestamp()
+		except ValueError as exc:
+			await self._send_json(writer, 400, {"error": str(exc)})
+			return
+		except Exception as exc:
+			print(f"RTC update failed: {exc}")
+			await self._send_json(writer, 500, {"error": "could not set RTC time"})
+			return
+
+		await self._send_json(writer, 200, {"timestamp": timestamp})
 
 	async def _delete_file(
 		self,

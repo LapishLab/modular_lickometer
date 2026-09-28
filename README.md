@@ -37,6 +37,11 @@ Endpoints:
 - `GET /api/power` - device hostname, battery voltage, and estimated charge
   percentage; for example,
   `{"hostname":"lickometer-01","voltage":3.87,"charge_percent":67.0}`
+- `POST /api/rtc` - set the external RTC with a JSON body containing integer
+  `year`, `month`, `day`, `hour`, `minute`, and `second` fields. Optional
+  `weekday` is zero-based (Monday is `0`) and defaults to `0`. The body is
+  limited to 1024 bytes. Success returns the resulting timestamp, for example,
+  `{"timestamp":"2026-09-28 14:30:00"}`.
 
 New recordings are named `YYYY_MM_DD_HHmmss.csv`. File listings can also
 contain older recordings named `YYYY_MM_DD_HHmmss_cage_N.csv`; clients should
@@ -49,6 +54,8 @@ Invoke-RestMethod http://lickometer-01.local/api/files
 Invoke-WebRequest http://lickometer-01.local/api/files/2026_09_22_143500.csv -OutFile recording.csv
 Invoke-RestMethod -Method Delete "http://lickometer-01.local/api/files/2026_09_22_143500.csv?size=1234&crc32=89abcdef"
 Invoke-RestMethod http://lickometer-01.local/api/power
+$rtcTime = @{ year = 2026; month = 9; day = 28; hour = 14; minute = 30; second = 0; weekday = 0 } | ConvertTo-Json -Compress
+Invoke-RestMethod -Method Post -ContentType 'application/json' -Body $rtcTime http://lickometer-01.local/api/rtc
 ```
 
 The physical start button stops the HTTP server and powers down Wi-Fi before
