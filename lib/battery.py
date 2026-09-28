@@ -4,6 +4,13 @@ import asyncio
 from machine import ADC, PWM, Pin
 from config import BATTERY_VOLTAGE_PIN, LOW_BATTERY_LED_PIN
 
+_instance_BatteryMonitor = None
+def get_BatteryMonitor_instance() -> BatteryMonitor:
+	global _instance_BatteryMonitor
+	if _instance_BatteryMonitor is None:
+		_instance_BatteryMonitor = BatteryMonitor()
+	return _instance_BatteryMonitor
+
 class BatteryMonitor:
 	"""Periodically display the measured battery charge on a PWM LED.
 
@@ -82,3 +89,4 @@ class BatteryMonitor:
 		self.task.cancel()
 		self.led.duty_u16(0)
 		self.led.deinit()
+

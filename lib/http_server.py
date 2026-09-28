@@ -6,12 +6,21 @@ import network
 import os
 
 import config
-from battery import BatteryMonitor
+from battery import BatteryMonitor, get_BatteryMonitor_instance
 from file_checksum import calculate_file_crc32
 from wifi import connect_to_wifi, disconnect_wifi
-from led import Blinking_LED
+from led import Blinking_LED, get_Status_LEDS_instance
 from states import Wireless as state
 from states import Error
+
+_instance_HTTPServer = None
+def get_HTTPServer_instance() -> HTTPServer:
+	global _instance_HTTPServer
+	if _instance_HTTPServer is None:
+		leds = get_Status_LEDS_instance()
+		battery = get_BatteryMonitor_instance()
+		_instance_HTTPServer = HTTPServer(battery=battery, led=leds.wireless, error=leds.error)
+	return _instance_HTTPServer
 
 _REASONS = {
 	200: "OK",

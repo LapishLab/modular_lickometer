@@ -1,27 +1,26 @@
 import asyncio
-import config
-from rtc import PCF85263A
+from rtc import get_PCF85263A_instance
 from sd import mount_data_folder
 from utilities import print_error
 from experiment import run_experiment
-from button import UserButtons
-from http_server import HTTPServer
-from led import Status_LEDS
-from battery import BatteryMonitor
+from button import get_UserButtons_instance
+from http_server import get_HTTPServer_instance
+from led import get_Status_LEDS_instance
+from battery import get_BatteryMonitor_instance
 from mode_handler import ModeDefinition, ModeHandler, ModeType
-from capacitance import SipperArray
+from capacitance import get_SipperArray_instance
 import states
 
 async def main() -> None:
 	await asyncio.sleep(5)
-	leds = Status_LEDS()
+	leds = get_Status_LEDS_instance()
 	await leds.experiment.set_blinks(states.Experiment.STARTUP)
-	battery = BatteryMonitor()
-	buttons = UserButtons()
-	rtc = PCF85263A(scl_pin=config.I2C_SCL, sda_pin=config.I2C_SDA)
-	sippers = SipperArray()
+	battery = get_BatteryMonitor_instance()
+	buttons = get_UserButtons_instance()
+	rtc = get_PCF85263A_instance()
+	sippers = get_SipperArray_instance()
 	mount_data_folder()
-	server = HTTPServer(battery=battery, led=leds.wireless, error=leds.error)
+	server = get_HTTPServer_instance()
 	handler = ModeHandler((
 		ModeDefinition(
 			type=ModeType.RECORDING,

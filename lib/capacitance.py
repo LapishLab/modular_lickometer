@@ -4,6 +4,13 @@ from machine import TouchPad, Pin, PWM
 import time
 import touch_control
 
+_instance_SipperArray = None
+def get_SipperArray_instance() -> SipperArray:
+    global _instance_SipperArray
+    if _instance_SipperArray is None:
+        _instance_SipperArray = SipperArray()
+    return _instance_SipperArray
+
 class SipperArray:
     def __init__(self) -> None:
         l = config.TOUCH_L_Pins

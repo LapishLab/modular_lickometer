@@ -2,6 +2,14 @@ from machine import Pin, PWM
 import asyncio
 from config import LED_REC_PIN, LED_TRANSFER_PIN, LED_ERROR_PIN
 
+_instance_Status_LEDS = None
+def get_Status_LEDS_instance() -> Status_LEDS:
+    """Global access point that instantiates ONLY when called."""
+    global _instance_Status_LEDS
+    if _instance_Status_LEDS is None:
+        _instance_Status_LEDS = Status_LEDS()
+    return _instance_Status_LEDS
+
 class Status_LEDS:
 	"""Class to manage the status LEDs on the device."""
 	def __init__(self) -> None:

@@ -2,6 +2,14 @@ from machine import Pin
 import asyncio
 
 import config
+
+_instance_UserButtons = None
+def get_UserButtons_instance() -> UserButtons:
+	global _instance_UserButtons
+	if _instance_UserButtons is None:
+		_instance_UserButtons = UserButtons()
+	return _instance_UserButtons
+
 class UserButtons:	
 	def __init__(self) -> None:
 		self.start = DebouncedButton(config.START_BUTTON_PIN)

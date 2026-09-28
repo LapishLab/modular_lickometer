@@ -2,7 +2,14 @@
 
 from machine import I2C, Pin
 import time
+from config import I2C_SCL, I2C_SDA
 
+_instance_PCF85263A = None
+def get_PCF85263A_instance() -> PCF85263A:
+    global _instance_PCF85263A
+    if _instance_PCF85263A is None:
+        _instance_PCF85263A = PCF85263A(scl_pin=I2C_SCL, sda_pin=I2C_SDA)
+    return _instance_PCF85263A
 
 class PCF85263A:
     """Access the calendar clock in an NXP PCF85263A over I2C."""
