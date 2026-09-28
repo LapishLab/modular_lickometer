@@ -1,14 +1,15 @@
 from machine import Pin, PWM
 import asyncio
-import config
+from config import LED_REC_PIN, LED_TRANSFER_PIN, LED_ERROR_PIN
+
 class Status_LEDS:
 	"""Class to manage the status LEDs on the device."""
 	def __init__(self) -> None:
-		self.recording = BLINKING_LED(config.LED_REC_PIN)
-		self.transfer = BLINKING_LED(config.LED_TRANSFER_PIN)
-		self.error = BLINKING_LED(config.LED_ERROR_PIN)
+		self.experiment = Blinking_LED(LED_REC_PIN)
+		self.wireless = Blinking_LED(LED_TRANSFER_PIN)
+		self.error = Blinking_LED(LED_ERROR_PIN)
 
-class BLINKING_LED:
+class Blinking_LED:
 	def __init__(self, pin: int) -> None:
 		"""
 		Initialize single LED
@@ -39,10 +40,15 @@ class BLINKING_LED:
 					await asyncio.sleep_ms(self.FLASH_OFF)
 			await asyncio.sleep_ms(self.PAUSE_OFF)
 
-	def set_blinks(self, num_flashes: int) -> None:
-		self.num_flashes = num_flashes
-		if self.task is None:
-			self.task = asyncio.create_task(self.blink_loop())
+	async def set_blinks(self, num_flashes: int) -> None:
+		if num_flashes==0:
+			await self.set_constant(False)
+		elif num_flashes==-1:
+			await self.set_constant(True)
+		elif num_flashes>0:
+			self.num_flashes = num_flashes
+			if self.task is None:
+				self.task = asyncio.create_task(self.blink_loop())
 
 	async def set_constant(self, on: bool) -> None:
 		if self.task is not None:

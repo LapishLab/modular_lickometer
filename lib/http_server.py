@@ -9,7 +9,9 @@ import config
 from battery import BatteryMonitor
 from file_checksum import calculate_file_crc32
 from wifi import connect_to_wifi, disconnect_wifi
-
+from led import Blinking_LED
+from states import Wireless as state
+from states import Error
 
 _REASONS = {
 	200: "OK",
@@ -25,33 +27,50 @@ class HTTPServer:
 	def __init__(
 		self,
 		battery: BatteryMonitor,
+		led: Blinking_LED,
+		error: Blinking_LED,
 		port: int | None = None,
 	) -> None:
 		self.battery = battery
 		self.port = config.HTTP_SERVER_PORT if port is None else port
 		self._server = None
+		self._start_task = None
+		self.led = led
+		self.error = error
 
-	async def start(self) -> bool:
+	async def start(self) -> None:
+		self._start_task = asyncio.create_task(self.start_worker())
+
+	async def start_worker(self) -> bool:
+		await self.led.set_blinks(state.WIFI_CONNECTING)
 		network.hostname(config.DEVICE_HOSTNAME)
 		ip = await connect_to_wifi(config.WIFI_SSID, config.WIFI_PASSWORD)
 		if ip is None:
+			await self.led.set_blinks(state.WIFI_OFF)
+			await self.error.set_blinks(Error.WIFI)
+			await asyncio.sleep(10)
+			await self.error.set_blinks(Error.CLEAR)
 			return False
 
-		self._server = await asyncio.start_server(
-			self._handle_client, "0.0.0.0", self.port
-		)
-		print("Ready at http://{}.local:{}/api/files".format(
-			config.DEVICE_HOSTNAME, self.port
-		))
+		
+		await self.stop_server() #Just double check a server instance isn't already running
+		await self.led.set_blinks(state.HTTP_STARTING)
+		self._server = await asyncio.start_server(self._handle_client, "0.0.0.0", self.port)
+		await self.led.set_blinks(state.HTTP_ACTIVE)
+		print(f"Ready at http://{config.DEVICE_HOSTNAME}.local:{self.port}/api/files")
 		return True
 
-	async def stop(self) -> None:
+	async def stop_server(self) -> None:
 		if self._server is not None:
 			self._server.close()
 			await self._server.wait_closed()
 			self._server = None
 			print("HTTP server stopped")
+		
+	async def stop(self) -> None:
+		await self.stop_server()
 		disconnect_wifi()
+		await self.led.set_blinks(state.WIFI_OFF)	
 
 	async def _handle_client(
 		self,
@@ -103,7 +122,7 @@ class HTTPServer:
 			else:
 				await self._send_json(writer, 404, {"error": "not found"})
 		except Exception as exc:
-			print("HTTP request failed: {}".format(exc))
+			print(f"HTTP request failed: {exc}")
 		finally:
 			writer.close()
 			try:
@@ -179,7 +198,7 @@ class HTTPServer:
 		await self._send_json(writer, 200, {
 			"deleted": filename,
 			"size": device_size,
-			"crc32": "{:08x}".format(device_crc32),
+			"crc32": f"{device_crc32:08x}",
 		})
 
 	def _parse_delete_verification(self, query: str) -> tuple | None:
@@ -222,15 +241,17 @@ class HTTPServer:
 		header = (
 			"HTTP/1.1 200 OK\r\n"
 			"Content-Type: text/csv\r\n"
-			"Content-Length: {}\r\n"
-			"Content-Disposition: attachment; filename=\"{}\"\r\n"
+			f"Content-Length: {size}\r\n"
+			f"Content-Disposition: attachment; filename=\"{filename}\"\r\n"
 			"Connection: close\r\n\r\n"
-		).format(size, filename)
+		)
 		writer.write(header.encode())
 		await writer.drain()
 
+		
 		buffer = bytearray(4096)
 		try:
+			await self.led.set_blinks(state.DATA_TRANSFER)
 			while True:
 				count = file.readinto(buffer)
 				if not count:
@@ -239,6 +260,7 @@ class HTTPServer:
 				await writer.drain()
 		finally:
 			file.close()
+			await self.led.set_blinks(state.HTTP_ACTIVE)
 
 	async def _send_json(
 		self,
@@ -249,11 +271,11 @@ class HTTPServer:
 		body = json.dumps(payload).encode()
 		reason = _REASONS.get(status, "")
 		header = (
-			"HTTP/1.1 {} {}\r\n"
+			f"HTTP/1.1 {status} {reason}\r\n"
 			"Content-Type: application/json\r\n"
-			"Content-Length: {}\r\n"
+			f"Content-Length: {len(body)}\r\n"
 			"Connection: close\r\n\r\n"
-		).format(status, reason, len(body))
+		)
 		writer.write(header.encode())
 		writer.write(body)
 		await writer.drain()

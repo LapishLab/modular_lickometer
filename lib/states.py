@@ -1,21 +1,25 @@
-class Status:
-	# Normal states
-	STARTUP = [[0, 0, 255], 0]
-	PENDING = [[0, 255, 0], 1]
-	RECORDING = [[0, 255, 0], 0]
-	STOPPING_RECORDING = [[255, 255, 0], 1]
-	WIFI_CONNECTED = [[255, 255, 0], 2]
-	DATA_TRANSFER = [[255, 255, 0], 3]
-	
-	# Error states
-	ERROR_SD = [[255, 0, 0], 0]
-	ERROR_RTC = [[255, 0, 0], 3]
-	ERROR_LED = [[255, 0, 0], 1]
-	ERROR_TOUCH = [[255, 0, 0], 2]
-	ERROR_BUTTON = [[255, 0, 0], 4]
-	ERROR_GENERAL = [[255, 0, 0], 5]
-	ERROR_RUN_EXPERIMENT = [[255, 0, 0], 6]
-	
-current_status = Status.STARTUP
 
-keep_recording = False 
+## Value indicates #LED blinks, with -1=ON and 0=OFF
+class Experiment:
+	""" Recording (Green LED) related states"""
+	STARTUP = 10
+	PENDING = 1
+	RECORDING = -1
+	NONE = 0
+
+class Wireless:
+	""" Wireless (Yellow LED) related states """
+	WIFI_CONNECTING = 1
+	HTTP_STARTING = 2
+	HTTP_ACTIVE = -1
+	DATA_TRANSFER = 10
+	WIFI_OFF = 0
+
+class Error:
+	""" Error (Red LED) related states """
+	GENERAL = 1
+	WIFI = 2
+	SD = 3
+	RTC = 4
+	SERVER = 5
+	CLEAR = 0
