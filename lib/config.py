@@ -25,6 +25,9 @@ TOUCH_R_Pins = (6, 4, 9) # Pins for right sipper (capacitance, reference, LED)
 START_BUTTON_PIN = 17     # Press to start recording
 STOP_BUTTON_PIN = 18      # Press to stop recording
 
+# Enter deep sleep after this much HTTP-idle time (milliseconds).
+IDLE_SLEEP_TIMEOUT_MS = 10 * 60 * 1000
+
 # Where do we save data
 DATA_FOLDER = "/data"
 

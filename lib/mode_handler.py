@@ -4,6 +4,7 @@ from asyncio import ThreadSafeFlag, Event, create_task, Task
 
 class ModeType:
 	RECORDING = "recording"
+	DEEP_SLEEP = "deep_sleep"
 
 class ModeDefinition:
 	def __init__(self, type: str, start_trig: tuple[ThreadSafeFlag, ...], stop_trig: tuple[ThreadSafeFlag, ...]) -> None:

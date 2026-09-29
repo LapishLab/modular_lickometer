@@ -66,3 +66,8 @@ The physical start button or the HTTP start endpoint stops the HTTP server and
 powers down Wi-Fi before recording. Wi-Fi remains off for the entire recording.
 The device reconnects and restarts the file server after the physical stop
 button is pressed and the CSV has been closed.
+
+While in idle mode, the device enters deep sleep after 10 minutes. The full
+timeout starts over each time `main_control` returns to its idle loop and is
+canceled as soon as another mode starts. Pressing the stop button (GPIO 18)
+wakes the device; it reboots and restarts the normal idle server workflow.
