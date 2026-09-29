@@ -18,18 +18,6 @@ filter. See `native/README.md` for the API, pinned MicroPython and ESP-IDF
 versions, and build command. Building or flashing custom MicroPython is
 separate from copying this application to the board.
 
-## Host-side tests
-
-`host_tests/` contains CPython tests for firmware logic that can be exercised
-without the ESP32, including application update staging and rollback. Run them
-from this repository with:
-
-```powershell
-python -m unittest discover -s host_tests
-```
-
-These tests are separate from the hardware diagnostic scripts in `tests/`.
-
 ## HTTP API
 
 Before copying the project to a device, copy `lib/wifi_credentials.example.py`
@@ -65,11 +53,14 @@ Endpoints:
 - `POST /api/update/commit` - verify all staged files and request installation.
   Returns HTTP 202 before the device stops the server, installs the files, and
   reboots. Only top-level application modules and files directly in `lib/` are
-  accepted; the boot entry point, updater, and credentials cannot be replaced.
+  accepted; the provisioned `lib/wifi_credentials.py` file cannot be replaced.
 
-Application updates are limited to 32 files, 256 KiB per file, and 1 MiB total.
-The device verifies CRC32 checksums, keeps backups through the first application
-startup, and restores them if the first boot fails. An upload interrupted by a
+Application updates are limited to 1 MiB total.
+The device verifies CRC32 checksums and installs files in manifest order after
+all uploads have been verified. Installation is not atomic across files and
+there is no automatic rollback: power loss or an install error may leave a
+partially updated application. A device that no longer boots must be recovered
+by reinstalling the application over USB/serial. An upload interrupted by a
 recording request remains uncommitted and cannot affect the installed files.
 These endpoints have no authentication: any host that can reach the device on
 the LAN can replace its application files. Use them only on the trusted,

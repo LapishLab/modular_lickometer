@@ -3,7 +3,6 @@ import machine
 from idle_timer import IdleTimer
 from rtc import get_PCF85263A_instance
 from sd import mount_data_folder
-from utilities import print_error
 from experiment import run_experiment
 from button import get_UserButtons_instance
 from http_server import get_HTTPServer_instance
@@ -42,8 +41,6 @@ async def main() -> None:
 			stop_trig=(),
 		),
 	))
-	update_manager.confirm_trial()
-
 	print("Starting Main Loop")
 
 	while True:
@@ -66,11 +63,7 @@ async def main() -> None:
 				await idle_timer.enter_deep_sleep()
 			elif mode.type == ModeType.UPDATING:
 				await server.stop()
-				try:
-					update_manager.install()
-				except Exception as exc:
-					print_error("Application update failed: {}".format(exc))
-					machine.reset()
+				update_manager.install()
 				print("Application update installed; rebooting")
 				machine.reset()
 			else:

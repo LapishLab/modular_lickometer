@@ -71,7 +71,7 @@ class HTTPServer:
 		
 		await self.stop_server() #Just double check a server instance isn't already running
 		self._stopping = False
-		self.update_manager.reset_commit()
+		self.update_manager.commit_pending = False
 		await self.led.set_blinks(state.HTTP_STARTING)
 		self._server = await asyncio.start_server(self._handle_client, "0.0.0.0", self.port)
 		await self.led.set_blinks(state.HTTP_ACTIVE)
@@ -88,7 +88,7 @@ class HTTPServer:
 	async def stop(self) -> None:
 		self._stopping = True
 		await self.stop_server()
-		await self.update_manager.wait_for_upload()
+		await self.update_manager.upload_done.wait()
 		disconnect_wifi()
 		await self.led.set_blinks(state.WIFI_OFF)	
 
@@ -215,6 +215,9 @@ class HTTPServer:
 			return
 		try:
 			payload = json.loads(body.decode())
+			if self.update_manager.operation_active:
+				await self._send_json(writer, 409, {"error": "an update operation is active"})
+				return
 			count = self.update_manager.begin(payload)
 		except (UnicodeError, ValueError, UpdateError) as exc:
 			await self._send_json(writer, 400, {"error": str(exc)})
@@ -228,7 +231,7 @@ class HTTPServer:
 		path: str,
 		content_length: int | None,
 	) -> None:
-		if self._stopping or self.update_manager.operation_active:
+		if self._stopping:
 			await self._send_json(writer, 409, {"error": "device is stopping or busy"})
 			return
 		try:
@@ -273,21 +276,22 @@ class HTTPServer:
 		self,
 		writer: asyncio.StreamWriter,
 	) -> None:
-		if self.update_manager.operation_active:
+		if not self.update_manager.start_commit():
 			await self._send_json(writer, 409, {"error": "an update commit is already pending"})
 			return
 		try:
 			self.update_manager.verify_ready()
 		except UpdateError as exc:
+			self.update_manager.commit_pending = False
 			await self._send_json(writer, 409, {"error": str(exc)})
 			return
-		if not self.update_manager.start_commit():
-			await self._send_json(writer, 409, {"error": "an update operation is active"})
-			return
+		except Exception:
+			self.update_manager.commit_pending = False
+			raise
 		try:
 			await self._send_json(writer, 202, {"accepted": True})
 		except Exception:
-			self.update_manager.cancel_commit()
+			self.update_manager.commit_pending = False
 			raise
 		asyncio.create_task(self._activate_update())
 

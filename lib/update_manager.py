@@ -1,4 +1,4 @@
-"""Stage, verify, and transactionally install application Python files."""
+"""Stage, verify, and install application Python files."""
 
 import json
 import os
@@ -7,8 +7,6 @@ from file_checksum import calculate_file_crc32
 
 
 UPDATE_FOLDER = "/.application_update"
-MAX_FILES = 32
-MAX_FILE_SIZE = 256 * 1024
 MAX_UPDATE_SIZE = 1024 * 1024
 
 _instance = None
@@ -18,72 +16,49 @@ def get_UpdateManager_instance() -> UpdateManager:
 		_instance = UpdateManager()
 	return _instance
 
-
 class UpdateError(Exception):
 	"""An application update is invalid or cannot be safely installed."""
 
 
 class UpdateManager:
-	def __init__(self, root: str = "/") -> None:
-		self.root = root.rstrip("/")
-		self._upload_active = False
-		self._upload_done = asyncio.Event()
-		self._upload_done.set()
-		self._commit_pending = False
-
-	@property
-	def upload_active(self) -> bool:
-		return self._upload_active
-
-	@property
-	def commit_pending(self) -> bool:
-		return self._commit_pending
+	def __init__(self) -> None:
+		self.upload_active = False
+		self.upload_done = asyncio.Event()
+		self.upload_done.set()
+		self.commit_pending = False
 
 	@property
 	def operation_active(self) -> bool:
-		return self._upload_active or self._commit_pending
+		return self.upload_active or self.commit_pending
 
 	def start_upload(self) -> bool:
 		"""Reserve the update transaction for one incoming file."""
 		if self.operation_active:
 			return False
-		self._upload_active = True
-		self._upload_done.clear()
+		self.upload_active = True
+		self.upload_done.clear()
 		return True
 
 	def finish_upload(self) -> None:
 		"""Release the upload reservation and unblock mode shutdown."""
-		self._upload_active = False
-		self._upload_done.set()
+		self.upload_active = False
+		self.upload_done.set()
 
-	async def wait_for_upload(self) -> None:
-		"""Wait until any active update file has been closed."""
-		await self._upload_done.wait()
 
 	def start_commit(self) -> bool:
 		"""Reserve the update transaction for its verified commit."""
 		if self.operation_active:
 			return False
-		self._commit_pending = True
+		self.commit_pending = True
 		return True
-
-	def cancel_commit(self) -> None:
-		"""Release a commit reservation when its acknowledgement fails."""
-		self._commit_pending = False
-
-	def reset_commit(self) -> None:
-		"""Clear transient commit state when the HTTP server starts again."""
-		self._commit_pending = False
 
 	def begin(self, payload: object) -> int:
 		"""Validate and persist a manifest, clearing any previous staging."""
-		if self._exists(self._update_path("journal.json")):
-			raise UpdateError("an installed update is awaiting boot confirmation")
 		if not isinstance(payload, dict):
 			raise UpdateError("manifest must be an object")
 		files = payload.get("files")
-		if not isinstance(files, list) or not files or len(files) > MAX_FILES:
-			raise UpdateError("manifest must contain between 1 and 32 files")
+		if not isinstance(files, list) or not files:
+			raise UpdateError("manifest must contain at least one file")
 
 		validated = []
 		seen = []
@@ -98,7 +73,7 @@ class UpdateManager:
 				raise UpdateError("manifest contains a protected or unsafe path")
 			if path in seen:
 				raise UpdateError("manifest contains a duplicate path")
-			if type(size) is not int or size < 0 or size > MAX_FILE_SIZE:
+			if type(size) is not int or size < 0:
 				raise UpdateError("manifest contains an invalid file size")
 			if not self._is_crc32(checksum):
 				raise UpdateError("manifest contains an invalid CRC32 checksum")
@@ -109,12 +84,9 @@ class UpdateManager:
 			validated.append({"path": path, "size": size, "crc32": checksum})
 
 		self._remove_tree(self._update_path("staging"))
-		self._remove_tree(self._update_path("backup"))
 		self._remove_if_exists(self._update_path("manifest.json"))
 		self._remove_if_exists(self._update_path("manifest.json.tmp"))
-		self._remove_if_exists(self._update_path("journal.json.tmp"))
 		self._make_dirs(self._update_path("staging"))
-		self._make_dirs(self._update_path("backup"))
 		self._write_json(self._update_path("manifest.json"), {"files": validated})
 		return len(validated)
 
@@ -156,74 +128,17 @@ class UpdateManager:
 				raise UpdateError("staged file failed CRC32 verification")
 
 	def install(self) -> None:
-		"""Install a verified update, retaining backups until boot confirmation."""
-		self.verify_ready()
-		entries = []
+		"""Install files after the commit handler has verified the package."""
 		for entry in self._read_manifest()["files"]:
-			entries.append({
-				"path": entry["path"],
-				"had_original": self._exists(self._app_path(entry["path"])),
-			})
-		journal = {"files": entries}
-		self._write_json(self._update_path("journal.json"), journal)
-
-		try:
-			for entry in entries:
-				relative_path = entry["path"]
-				destination = self._app_path(relative_path)
-				backup = self._update_path("backup/" + relative_path)
-				staged = self._update_path("staging/" + relative_path)
-				self._make_dirs(backup.rsplit("/", 1)[0])
-				if entry["had_original"]:
-					os.rename(destination, backup)
-				os.rename(staged, destination)
-			self._write_text(self._update_path("trial"), "pending")
-		except Exception:
-			self._rollback(journal)
-			self._clear_transaction()
-			raise
-
-	def recover(self) -> None:
-		"""Roll back an interrupted install or discard an interrupted upload."""
-		journal_path = self._update_path("journal.json")
-		if self._exists(journal_path):
-			journal = self._read_json(journal_path)
-			if not self._exists(self._update_path("trial")):
-				self._rollback(journal)
-				self._clear_transaction()
-			return
+			relative_path = entry["path"]
+			destination = self._app_path(relative_path)
+			staged = self._update_path("staging/" + relative_path)
+			self._make_dirs(destination.rsplit("/", 1)[0])
+			self._remove_if_exists(destination)
+			os.rename(staged, destination)
 		self._remove_tree(self._update_path("staging"))
-		self._remove_tree(self._update_path("backup"))
 		self._remove_if_exists(self._update_path("manifest.json"))
 		self._remove_if_exists(self._update_path("manifest.json.tmp"))
-
-	def start_trial(self) -> None:
-		"""Allow one boot attempt before automatically restoring the backup."""
-		trial = self._update_path("trial")
-		if not self._exists(trial):
-			return
-		attempt = self._update_path("attempt")
-		if self._exists(attempt):
-			self._rollback(self._read_json(self._update_path("journal.json")))
-			self._clear_transaction()
-			return
-		self._write_text(attempt, "started")
-
-	def confirm_trial(self) -> bool:
-		"""Discard rollback files after the new application starts successfully."""
-		if not self._exists(self._update_path("trial")):
-			return False
-		self._clear_transaction()
-		return True
-
-	def rollback_trial(self) -> bool:
-		"""Restore the previous application after a failed trial boot."""
-		journal_path = self._update_path("journal.json")
-		if not self._exists(journal_path):
-			return False
-		self._rollback(self._read_json(journal_path))
-		self._clear_transaction()
-		return True
 
 	def _manifest_entry(self, path: str) -> dict:
 		if not self._is_allowed_path(path):
@@ -236,28 +151,11 @@ class UpdateManager:
 	def _read_manifest(self) -> dict:
 		return self._read_json(self._update_path("manifest.json"))
 
-	def _rollback(self, journal: dict) -> None:
-		for entry in journal["files"]:
-			destination = self._app_path(entry["path"])
-			backup = self._update_path("backup/" + entry["path"])
-			if entry["had_original"]:
-				if self._exists(backup):
-					self._remove_if_exists(destination)
-					os.rename(backup, destination)
-			elif self._exists(destination):
-				os.remove(destination)
-
-	def _clear_transaction(self) -> None:
-		self._remove_tree(self._update_path("staging"))
-		self._remove_tree(self._update_path("backup"))
-		for filename in ("manifest.json", "manifest.json.tmp", "journal.json", "trial", "attempt"):
-			self._remove_if_exists(self._update_path(filename))
-
 	def _app_path(self, relative_path: str) -> str:
-		return (self.root or "") + "/" + relative_path
+		return "/" + relative_path
 
 	def _update_path(self, relative_path: str) -> str:
-		return (self.root or "") + UPDATE_FOLDER + "/" + relative_path
+		return UPDATE_FOLDER + "/" + relative_path
 
 	def _is_allowed_path(self, path: object) -> bool:
 		if not isinstance(path, str) or not path.endswith(".py") or "\\" in path:
@@ -273,14 +171,7 @@ class UpdateManager:
 			return False
 		if any(character not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-" for character in filename):
 			return False
-		return filename not in (
-			"main.py",
-			"boot.py",
-			"update_manager.py",
-			"wifi_credentials.py",
-			"wifi_credentials.example.py",
-			"update_credentials.py",
-		)
+		return filename != "wifi_credentials.py"
 
 	def _read_json(self, path: str) -> dict:
 		try:
@@ -298,10 +189,6 @@ class UpdateManager:
 			file.write(json.dumps(payload))
 		self._remove_if_exists(path)
 		os.rename(temporary, path)
-
-	def _write_text(self, path: str, text: str) -> None:
-		with open(path, "w") as file:
-			file.write(text)
 
 	def _is_crc32(self, value: object) -> bool:
 		if not isinstance(value, str) or len(value) != 8:
