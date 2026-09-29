@@ -35,9 +35,7 @@ DATA_FOLDER = "/data"
 SAMPLE_PERIOD_MS: int = 10
 
 # Wi-Fi credentials are provisioned separately and are not tracked by Git.
-from wifi_credentials import WIFI_SSID, WIFI_PASSWORD
+from wifi_credentials import WIFI_SSID, WIFI_PASSWORD, DEVICE_HOSTNAME
 
 # Network identity and HTTP file server
-# DEVICE_HOSTNAME must be unique for every lickometer on the network.
-DEVICE_HOSTNAME = "cage01"
 HTTP_SERVER_PORT = 80
