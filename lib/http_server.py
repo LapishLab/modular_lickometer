@@ -4,7 +4,6 @@ import asyncio
 import json
 import network
 import os
-
 import config
 from battery import BatteryMonitor, get_BatteryMonitor_instance
 from file_checksum import calculate_file_crc32
@@ -25,6 +24,7 @@ def get_HTTPServer_instance() -> HTTPServer:
 
 _REASONS = {
 	200: "OK",
+	202: "Accepted",
 	400: "Bad Request",
 	413: "Payload Too Large",
 	404: "Not Found",
@@ -48,6 +48,7 @@ class HTTPServer:
 		self._start_task = None
 		self.led = led
 		self.error = error
+		self.start_trigger = asyncio.ThreadSafeFlag()
 
 	async def start(self) -> None:
 		self._start_task = asyncio.create_task(self.start_worker())
@@ -135,6 +136,8 @@ class HTTPServer:
 				await self._send_json(writer, 200, self._get_power())
 			elif method == "POST" and path == "/api/rtc":
 				await self._set_rtc(writer, reader, content_length)
+			elif method == "POST" and path == "/api/experiment/start":
+				await self._start_experiment(writer)
 			elif method == "GET" and path.startswith("/api/files/"):
 				filename = path[len("/api/files/"):]
 				await self._send_file(writer, filename)
@@ -146,6 +149,7 @@ class HTTPServer:
 				or path.startswith("/api/files/")
 				or path == "/api/power"
 				or path == "/api/rtc"
+				or path == "/api/experiment/start"
 			):
 				await self._send_json(writer, 405, {"error": "method not allowed"})
 			else:
@@ -180,6 +184,16 @@ class HTTPServer:
 			"voltage": round(voltage, 3),
 			"charge_percent": round(self.battery.charge_fraction * 100, 1),
 		}
+
+	async def _start_experiment(self, writer: asyncio.StreamWriter) -> None:
+		"""Acknowledge a recording request and signal its configured start trigger."""
+		await self._send_json(writer, 202, {"accepted": True})
+		asyncio.create_task(self._activate_requested_experiment())
+
+	async def _activate_requested_experiment(self) -> None:
+		"""Let the HTTP response leave before stopping Wi-Fi for recording."""
+		await asyncio.sleep_ms(100)
+		self.start_trigger.set()
 
 	async def _set_rtc(
 		self,

@@ -37,6 +37,9 @@ Endpoints:
 - `GET /api/power` - device hostname, battery voltage, and estimated charge
   percentage; for example,
   `{"hostname":"lickometer-01","voltage":3.87,"charge_percent":67.0}`
+- `POST /api/experiment/start` - request recording while the device is idle;
+  success returns HTTP 202 with `{"accepted":true}`. This signals the recording
+  mode's normal start trigger; the HTTP server is unavailable during recording.
 - `POST /api/rtc` - set the external RTC with a JSON body containing integer
   `year`, `month`, `day`, `hour`, `minute`, and `second` fields. Optional
   `weekday` is zero-based (Monday is `0`) and defaults to `0`. The body is
@@ -54,11 +57,12 @@ Invoke-RestMethod http://lickometer-01.local/api/files
 Invoke-WebRequest http://lickometer-01.local/api/files/2026_09_22_143500.csv -OutFile recording.csv
 Invoke-RestMethod -Method Delete "http://lickometer-01.local/api/files/2026_09_22_143500.csv?size=1234&crc32=89abcdef"
 Invoke-RestMethod http://lickometer-01.local/api/power
+Invoke-RestMethod -Method Post http://lickometer-01.local/api/experiment/start
 $rtcTime = @{ year = 2026; month = 9; day = 28; hour = 14; minute = 30; second = 0; weekday = 0 } | ConvertTo-Json -Compress
 Invoke-RestMethod -Method Post -ContentType 'application/json' -Body $rtcTime http://lickometer-01.local/api/rtc
 ```
 
-The physical start button stops the HTTP server and powers down Wi-Fi before
-recording. Wi-Fi remains off for the entire recording. The device reconnects and
-restarts the file server after the physical stop button is pressed and the CSV
-has been closed.
+The physical start button or the HTTP start endpoint stops the HTTP server and
+powers down Wi-Fi before recording. Wi-Fi remains off for the entire recording.
+The device reconnects and restarts the file server after the physical stop
+button is pressed and the CSV has been closed.

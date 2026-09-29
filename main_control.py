@@ -23,7 +23,7 @@ async def main() -> None:
 	handler = ModeHandler((
 		ModeDefinition(
 			type=ModeType.RECORDING,
-			start_trig=(buttons.start.pressed,),
+			start_trig=(buttons.start.pressed, server.start_trigger),
 			stop_trig=(buttons.stop.pressed,),
 		),
 	))
