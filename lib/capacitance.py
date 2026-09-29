@@ -53,7 +53,7 @@ class Sipper:
         self.led.duty_u16(squared_brightness)
 
 
-    def calc_LED_mapping(self, avg: float = 0.2, std: float = 0.1) -> tuple[int, int]:
+    def calc_LED_mapping(self, avg: float = 0.2, std: float = 0.6) -> tuple[int, int]:
         """Return the minimum difference and span for gamma-2 brightness.
 
         ``avg`` is the perceived brightness assigned to the measured average

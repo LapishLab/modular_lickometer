@@ -33,7 +33,9 @@ async def main() -> None:
 	while True:
 		await leds.experiment.set_blinks(states.Experiment.PENDING)
 		await server.start()
+		test_worker = asyncio.create_task(cap_test_loop())
 		mode = await handler.wait()
+		test_worker.cancel()
 		await leds.experiment.set_blinks(states.Experiment.NONE)
 
 		try:
@@ -46,3 +48,11 @@ async def main() -> None:
 		finally:
 			await leds.experiment.set_blinks(states.Experiment.NONE)
 			handler.end_mode()
+
+
+async def cap_test_loop(delay_ms: int = 200) -> None:
+	sippers = get_SipperArray_instance()
+	while True:
+		sippers.left.read()
+		sippers.right.read()
+		await asyncio.sleep_ms(delay_ms)
