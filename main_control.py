@@ -1,4 +1,5 @@
 import asyncio
+import machine
 from idle_timer import IdleTimer
 from rtc import get_PCF85263A_instance
 from sd import mount_data_folder
@@ -10,6 +11,7 @@ from led import get_Status_LEDS_instance
 from battery import get_BatteryMonitor_instance
 from mode_handler import ModeDefinition, ModeHandler, ModeType
 from capacitance import get_SipperArray_instance
+from update_manager import get_UpdateManager_instance
 import states
 
 async def main() -> None:
@@ -21,6 +23,7 @@ async def main() -> None:
 	sippers = get_SipperArray_instance()
 	mount_data_folder()
 	server = get_HTTPServer_instance()
+	update_manager = get_UpdateManager_instance()
 	idle_timer = IdleTimer()
 	handler = ModeHandler((
 		ModeDefinition(
@@ -33,7 +36,13 @@ async def main() -> None:
 			start_trig=(idle_timer.trigger,),
 			stop_trig=(),
 		),
+		ModeDefinition(
+			type=ModeType.UPDATING,
+			start_trig=(server.update_trigger,),
+			stop_trig=(),
+		),
 	))
+	update_manager.confirm_trial()
 
 	print("Starting Main Loop")
 
@@ -48,12 +57,22 @@ async def main() -> None:
 		await leds.experiment.set_blinks(states.Experiment.NONE)
 
 		try:
-			await server.stop()
 			if mode.type == ModeType.RECORDING:
+				await server.stop()
 				await leds.experiment.set_blinks(states.Experiment.RECORDING)
 				await run_experiment(mode.stop_event, rtc, sippers)
 			elif mode.type == ModeType.DEEP_SLEEP:
+				await server.stop()
 				await idle_timer.enter_deep_sleep()
+			elif mode.type == ModeType.UPDATING:
+				await server.stop()
+				try:
+					update_manager.install()
+				except Exception as exc:
+					print_error("Application update failed: {}".format(exc))
+					machine.reset()
+				print("Application update installed; rebooting")
+				machine.reset()
 			else:
 				raise ValueError("Unknown mode: {}".format(mode.type))
 		finally:

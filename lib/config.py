@@ -39,5 +39,5 @@ from wifi_credentials import WIFI_SSID, WIFI_PASSWORD
 
 # Network identity and HTTP file server
 # DEVICE_HOSTNAME must be unique for every lickometer on the network.
-DEVICE_HOSTNAME = "lickometer-01"
+DEVICE_HOSTNAME = "cage01"
 HTTP_SERVER_PORT = 80

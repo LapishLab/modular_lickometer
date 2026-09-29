@@ -18,6 +18,18 @@ filter. See `native/README.md` for the API, pinned MicroPython and ESP-IDF
 versions, and build command. Building or flashing custom MicroPython is
 separate from copying this application to the board.
 
+## Host-side tests
+
+`host_tests/` contains CPython tests for firmware logic that can be exercised
+without the ESP32, including application update staging and rollback. Run them
+from this repository with:
+
+```powershell
+python -m unittest discover -s host_tests
+```
+
+These tests are separate from the hardware diagnostic scripts in `tests/`.
+
 ## HTTP API
 
 Before copying the project to a device, copy `lib/wifi_credentials.example.py`
@@ -45,6 +57,24 @@ Endpoints:
   `weekday` is zero-based (Monday is `0`) and defaults to `0`. The body is
   limited to 1024 bytes. Success returns the resulting timestamp, for example,
   `{"timestamp":"2026-09-28 14:30:00"}`.
+- `POST /api/update/begin` - start staging an application update. Requires the
+  JSON `files` array of `{path, size, crc32}` entries. CRC32 is eight lowercase
+  hexadecimal digits.
+- `POST /api/update/files/<path>` - stream one manifest-listed Python file into
+  staging with a matching `Content-Length`.
+- `POST /api/update/commit` - verify all staged files and request installation.
+  Returns HTTP 202 before the device stops the server, installs the files, and
+  reboots. Only top-level application modules and files directly in `lib/` are
+  accepted; the boot entry point, updater, and credentials cannot be replaced.
+
+Application updates are limited to 32 files, 256 KiB per file, and 1 MiB total.
+The device verifies CRC32 checksums, keeps backups through the first application
+startup, and restores them if the first boot fails. An upload interrupted by a
+recording request remains uncommitted and cannot affect the installed files.
+These endpoints have no authentication: any host that can reach the device on
+the LAN can replace its application files. Use them only on the trusted,
+isolated network described for this system. CRC32 detects incomplete or
+corrupted transfers; it does not identify the sender.
 
 New recordings are named `YYYY_MM_DD_HHmmss.csv`. File listings can also
 contain older recordings named `YYYY_MM_DD_HHmmss_cage_N.csv`; clients should
@@ -71,3 +101,7 @@ While in idle mode, the device enters deep sleep after 10 minutes. The full
 timeout starts over each time `main_control` returns to its idle loop and is
 canceled as soon as another mode starts. Pressing the stop button (GPIO 18)
 wakes the device; it reboots and restarts the normal idle server workflow.
+
+The PC updater sends files from the local firmware checkout; the lickometer does
+not fetch update files from the internet. See the PC repository README for its
+command and options.

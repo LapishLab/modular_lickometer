@@ -12,6 +12,7 @@ from wifi import connect_to_wifi, disconnect_wifi
 from led import Blinking_LED, get_Status_LEDS_instance
 from states import Wireless as state
 from states import Error
+from update_manager import UpdateError, get_UpdateManager_instance
 
 _instance_HTTPServer = None
 def get_HTTPServer_instance() -> HTTPServer:
@@ -49,6 +50,9 @@ class HTTPServer:
 		self.led = led
 		self.error = error
 		self.start_trigger = asyncio.ThreadSafeFlag()
+		self.update_trigger = asyncio.ThreadSafeFlag()
+		self.update_manager = get_UpdateManager_instance()
+		self._stopping = False
 
 	async def start(self) -> None:
 		self._start_task = asyncio.create_task(self.start_worker())
@@ -66,6 +70,8 @@ class HTTPServer:
 
 		
 		await self.stop_server() #Just double check a server instance isn't already running
+		self._stopping = False
+		self.update_manager.reset_commit()
 		await self.led.set_blinks(state.HTTP_STARTING)
 		self._server = await asyncio.start_server(self._handle_client, "0.0.0.0", self.port)
 		await self.led.set_blinks(state.HTTP_ACTIVE)
@@ -80,7 +86,9 @@ class HTTPServer:
 			print("HTTP server stopped")
 		
 	async def stop(self) -> None:
+		self._stopping = True
 		await self.stop_server()
+		await self.update_manager.wait_for_upload()
 		disconnect_wifi()
 		await self.led.set_blinks(state.WIFI_OFF)	
 
@@ -100,7 +108,7 @@ class HTTPServer:
 				return
 
 			method, target, _ = parts
-			# Headers are not currently used, but must be consumed before replying.
+			# Parse only the request metadata this server needs.
 			content_length = None
 			for _ in range(32):
 				line = await reader.readline()
@@ -138,6 +146,17 @@ class HTTPServer:
 				await self._set_rtc(writer, reader, content_length)
 			elif method == "POST" and path == "/api/experiment/start":
 				await self._start_experiment(writer)
+			elif method == "POST" and path == "/api/update/begin":
+				await self._begin_update(writer, reader, content_length)
+			elif method == "POST" and path.startswith("/api/update/files/"):
+				await self._upload_update_file(
+					writer,
+					reader,
+					path[len("/api/update/files/"):],
+					content_length,
+				)
+			elif method == "POST" and path == "/api/update/commit":
+				await self._commit_update(writer)
 			elif method == "GET" and path.startswith("/api/files/"):
 				filename = path[len("/api/files/"):]
 				await self._send_file(writer, filename)
@@ -150,6 +169,9 @@ class HTTPServer:
 				or path == "/api/power"
 				or path == "/api/rtc"
 				or path == "/api/experiment/start"
+				or path == "/api/update/begin"
+				or path.startswith("/api/update/files/")
+				or path == "/api/update/commit"
 			):
 				await self._send_json(writer, 405, {"error": "method not allowed"})
 			else:
@@ -162,6 +184,117 @@ class HTTPServer:
 				await writer.wait_closed()
 			except Exception:
 				pass
+
+	async def _begin_update(
+		self,
+		writer: asyncio.StreamWriter,
+		reader: asyncio.StreamReader,
+		content_length: int | None,
+	) -> None:
+		if self.update_manager.operation_active:
+			await self._send_json(writer, 409, {"error": "an update operation is active"})
+			return
+		if content_length is None or content_length == 0:
+			await self._send_json(writer, 400, {"error": "update manifest is required"})
+			return
+		if content_length > 8192:
+			await self._send_json(writer, 413, {"error": "update manifest is too large"})
+			return
+		body = bytearray()
+		try:
+			while len(body) < content_length:
+				chunk = await asyncio.wait_for(
+					reader.read(content_length - len(body)), 10
+				)
+				if not chunk:
+					await self._send_json(writer, 400, {"error": "incomplete update manifest"})
+					return
+				body.extend(chunk)
+		except asyncio.TimeoutError:
+			await self._send_json(writer, 400, {"error": "update manifest timed out"})
+			return
+		try:
+			payload = json.loads(body.decode())
+			count = self.update_manager.begin(payload)
+		except (UnicodeError, ValueError, UpdateError) as exc:
+			await self._send_json(writer, 400, {"error": str(exc)})
+			return
+		await self._send_json(writer, 200, {"accepted": True, "files": count})
+
+	async def _upload_update_file(
+		self,
+		writer: asyncio.StreamWriter,
+		reader: asyncio.StreamReader,
+		path: str,
+		content_length: int | None,
+	) -> None:
+		if self._stopping or self.update_manager.operation_active:
+			await self._send_json(writer, 409, {"error": "device is stopping or busy"})
+			return
+		try:
+			expected_size = self.update_manager.expected_size(path)
+		except UpdateError as exc:
+			await self._send_json(writer, 404, {"error": str(exc)})
+			return
+		if content_length is None or content_length != expected_size:
+			await self._send_json(writer, 400, {"error": "content length does not match manifest"})
+			return
+
+		if not self.update_manager.start_upload():
+			await self._send_json(writer, 409, {"error": "device is busy"})
+			return
+		temporary = None
+		try:
+			temporary = self.update_manager.stage_path(path)
+			with open(temporary, "wb") as output:
+				remaining = expected_size
+				while remaining:
+					if self._stopping:
+						raise UpdateError("upload interrupted by device mode change")
+					chunk = await asyncio.wait_for(reader.read(min(1024, remaining)), 10)
+					if not chunk:
+						raise UpdateError("incomplete file upload")
+					output.write(chunk)
+					remaining -= len(chunk)
+			self.update_manager.finish_file(path)
+			await self._send_json(writer, 200, {"accepted": True, "path": path})
+		except (OSError, asyncio.TimeoutError, UpdateError) as exc:
+			if temporary is not None:
+				try:
+					os.remove(temporary)
+				except OSError:
+					pass
+			status = 409 if self._stopping else 400
+			await self._send_json(writer, status, {"error": str(exc)})
+		finally:
+			self.update_manager.finish_upload()
+
+	async def _commit_update(
+		self,
+		writer: asyncio.StreamWriter,
+	) -> None:
+		if self.update_manager.operation_active:
+			await self._send_json(writer, 409, {"error": "an update commit is already pending"})
+			return
+		try:
+			self.update_manager.verify_ready()
+		except UpdateError as exc:
+			await self._send_json(writer, 409, {"error": str(exc)})
+			return
+		if not self.update_manager.start_commit():
+			await self._send_json(writer, 409, {"error": "an update operation is active"})
+			return
+		try:
+			await self._send_json(writer, 202, {"accepted": True})
+		except Exception:
+			self.update_manager.cancel_commit()
+			raise
+		asyncio.create_task(self._activate_update())
+
+	async def _activate_update(self) -> None:
+		await asyncio.sleep_ms(100)
+		if not self._stopping:
+			self.update_trigger.set()
 
 	def _list_files(self) -> list:
 		files = []
