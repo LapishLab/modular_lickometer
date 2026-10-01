@@ -1,8 +1,9 @@
 """Manually exercise every function in the native ``touch_control`` module.
 
 Run this script on an ESP32-S3 containing the custom MicroPython firmware. Do
-not run it during an experiment. It restores readable tuning settings, leaves
-the hardware filter disabled, and restores the timeout to its ESP-IDF default.
+not run it during an experiment. It restores readable tuning settings; leaves
+the filter, denoise, and waterproof features disabled; and restores the timeout
+to its ESP-IDF default.
 
 This verifies that each wrapper can be called and returns the expected Python
 type. It does not prove that every setting has the intended electrical effect.
@@ -16,6 +17,9 @@ import touch_control
 TOUCH_PINS = (7, 5, 6, 4)
 TEST_CHANNEL = TOUCH_PINS[0]
 FILTER_SETTLE_MS = 100
+# Enabling waterproof mode reconfigures GPIO14 as the driven shield. Change
+# this only after disconnecting any other GPIO14 circuit, including LED_REC_PIN.
+TEST_WATERPROOF_ENABLE = False
 
 
 def require(condition: bool, message: str) -> None:
@@ -84,6 +88,14 @@ def main() -> None:
     original_filter_config = touch_control.get_filter_config()
     require_int_tuple(original_filter_config, 5, "get_filter_config")
     pass_test("get_filter_config")
+
+    original_denoise_config = touch_control.get_denoise_config()
+    require_int_tuple(original_denoise_config, 2, "get_denoise_config")
+    pass_test("get_denoise_config")
+
+    original_waterproof_config = touch_control.get_waterproof_config()
+    require_int_tuple(original_waterproof_config, 2, "get_waterproof_config")
+    pass_test("get_waterproof_config")
 
     try:
         result = touch_control.set_timeout(False, 0)
@@ -194,9 +206,72 @@ def main() -> None:
         result = touch_control.disable_filter()
         require(result is None, "disable_filter did not return None")
         pass_test("disable_filter")
+
+        result = touch_control.configure_denoise(
+            touch_control.DENOISE_BIT_12,
+            touch_control.DENOISE_CAP_LEVEL_0,
+        )
+        require(result is None, "configure_denoise did not return None")
+        expected_denoise = (
+            touch_control.DENOISE_BIT_12,
+            touch_control.DENOISE_CAP_LEVEL_0,
+        )
+        require(
+            touch_control.get_denoise_config() == expected_denoise,
+            "denoise configuration did not round-trip",
+        )
+        pass_test("configure_denoise")
+
+        result = touch_control.enable_denoise()
+        require(result is None, "enable_denoise did not return None")
+        pass_test("enable_denoise")
+
+        denoise_value = touch_control.read_denoise()
+        require_int(denoise_value, "read_denoise")
+        require(denoise_value >= 0, "read_denoise returned a negative value")
+        pass_test("read_denoise")
+
+        result = touch_control.disable_denoise()
+        require(result is None, "disable_denoise did not return None")
+        pass_test("disable_denoise")
+
+        result = touch_control.configure_waterproof(
+            0,
+            touch_control.SHIELD_DRIVER_LEVEL_0,
+        )
+        require(result is None, "configure_waterproof did not return None")
+        expected_waterproof = (0, touch_control.SHIELD_DRIVER_LEVEL_0)
+        require(
+            touch_control.get_waterproof_config() == expected_waterproof,
+            "waterproof configuration did not round-trip",
+        )
+        pass_test("configure_waterproof")
+
+        result = touch_control.disable_waterproof()
+        require(result is None, "disable_waterproof did not return None")
+        pass_test("disable_waterproof")
+
+        require(callable(touch_control.enable_waterproof), "enable_waterproof is not callable")
+        if TEST_WATERPROOF_ENABLE:
+            result = touch_control.enable_waterproof()
+            require(result is None, "enable_waterproof did not return None")
+            touch_control.disable_waterproof()
+            pass_test("enable_waterproof")
+        else:
+            print("SKIP: enable_waterproof (GPIO14 hardware not confirmed safe)")
     finally:
-        # The timeout enable state and filter enable state have no public
-        # getters, so leave them in known states. Restore all readable values.
+        # These enable states have no public getters, so leave them disabled.
+        # Restore all readable values.
+        touch_control.disable_waterproof()
+        touch_control.configure_waterproof(
+            original_waterproof_config[0],
+            original_waterproof_config[1],
+        )
+        touch_control.disable_denoise()
+        touch_control.configure_denoise(
+            original_denoise_config[0],
+            original_denoise_config[1],
+        )
         touch_control.disable_filter()
         touch_control.configure_filter(
             original_filter_config[0],
@@ -221,7 +296,8 @@ def main() -> None:
         touch_control.set_timeout(True, timeout_default)
 
     print("All touch_control API checks passed.")
-    print("Hardware filter is disabled; timeout is restored to the default.")
+    print("Filter, denoise, and waterproof features are disabled.")
+    print("Timeout is restored to the default.")
 
 
 main()

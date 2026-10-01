@@ -50,6 +50,28 @@ SMOOTH_IIR_2: int
 SMOOTH_IIR_4: int
 SMOOTH_IIR_8: int
 
+DENOISE_BIT_12: int
+DENOISE_BIT_10: int
+DENOISE_BIT_8: int
+DENOISE_BIT_4: int
+DENOISE_CAP_LEVEL_0: int
+DENOISE_CAP_LEVEL_1: int
+DENOISE_CAP_LEVEL_2: int
+DENOISE_CAP_LEVEL_3: int
+DENOISE_CAP_LEVEL_4: int
+DENOISE_CAP_LEVEL_5: int
+DENOISE_CAP_LEVEL_6: int
+DENOISE_CAP_LEVEL_7: int
+
+SHIELD_DRIVER_LEVEL_0: int
+SHIELD_DRIVER_LEVEL_1: int
+SHIELD_DRIVER_LEVEL_2: int
+SHIELD_DRIVER_LEVEL_3: int
+SHIELD_DRIVER_LEVEL_4: int
+SHIELD_DRIVER_LEVEL_5: int
+SHIELD_DRIVER_LEVEL_6: int
+SHIELD_DRIVER_LEVEL_7: int
+
 
 def set_timeout(enabled: bool, threshold: int) -> None:
     """Configure the shared measurement timeout."""
@@ -159,4 +181,49 @@ def disable_filter() -> None:
 
 def read_smooth(channel: int) -> int:
     """Read a channel's filtered value."""
+    ...
+
+
+def configure_denoise(grade: int, cap_level: int) -> None:
+    """Configure the internal denoise channel."""
+    ...
+
+
+def get_denoise_config() -> tuple[int, int]:
+    """Return (grade, cap_level) for the internal denoise channel."""
+    ...
+
+
+def enable_denoise() -> None:
+    """Enable subtraction using the internal denoise channel."""
+    ...
+
+
+def disable_denoise() -> None:
+    """Disable subtraction using the internal denoise channel."""
+    ...
+
+
+def read_denoise() -> int:
+    """Read the internal denoise channel."""
+    ...
+
+
+def configure_waterproof(guard_channel: int, shield_driver: int) -> None:
+    """Configure the guard channel and Touch14 shield drive level."""
+    ...
+
+
+def get_waterproof_config() -> tuple[int, int]:
+    """Return (guard_channel, shield_driver)."""
+    ...
+
+
+def enable_waterproof() -> None:
+    """Enable Touch14 as the driven shield channel."""
+    ...
+
+
+def disable_waterproof() -> None:
+    """Disable the driven shield channel."""
     ...

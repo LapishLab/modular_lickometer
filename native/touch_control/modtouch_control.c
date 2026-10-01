@@ -318,6 +318,120 @@ static mp_obj_t touch_control_read_smooth(mp_obj_t channel_obj) {
 }
 static MP_DEFINE_CONST_FUN_OBJ_1(touch_control_read_smooth_obj, touch_control_read_smooth);
 
+static mp_obj_t touch_control_configure_denoise(mp_obj_t grade_obj, mp_obj_t cap_level_obj) {
+    touch_pad_denoise_t config = {
+        .grade = (touch_pad_denoise_grade_t)touch_control_get_int_in_range(
+            grade_obj,
+            TOUCH_PAD_DENOISE_BIT12,
+            TOUCH_PAD_DENOISE_BIT4,
+            "grade"
+        ),
+        .cap_level = (touch_pad_denoise_cap_t)touch_control_get_int_in_range(
+            cap_level_obj,
+            TOUCH_PAD_DENOISE_CAP_L0,
+            TOUCH_PAD_DENOISE_CAP_L7,
+            "cap_level"
+        ),
+    };
+    touch_control_check_error(touch_pad_denoise_set_config(&config));
+    return mp_const_none;
+}
+static MP_DEFINE_CONST_FUN_OBJ_2(
+    touch_control_configure_denoise_obj,
+    touch_control_configure_denoise
+);
+
+static mp_obj_t touch_control_get_denoise_config(void) {
+    touch_pad_denoise_t config;
+    touch_control_check_error(touch_pad_denoise_get_config(&config));
+    mp_obj_t result[] = {
+        MP_OBJ_NEW_SMALL_INT(config.grade),
+        MP_OBJ_NEW_SMALL_INT(config.cap_level),
+    };
+    return mp_obj_new_tuple(2, result);
+}
+static MP_DEFINE_CONST_FUN_OBJ_0(
+    touch_control_get_denoise_config_obj,
+    touch_control_get_denoise_config
+);
+
+static mp_obj_t touch_control_enable_denoise(void) {
+    touch_control_check_error(touch_pad_denoise_enable());
+    return mp_const_none;
+}
+static MP_DEFINE_CONST_FUN_OBJ_0(touch_control_enable_denoise_obj, touch_control_enable_denoise);
+
+static mp_obj_t touch_control_disable_denoise(void) {
+    touch_control_check_error(touch_pad_denoise_disable());
+    return mp_const_none;
+}
+static MP_DEFINE_CONST_FUN_OBJ_0(touch_control_disable_denoise_obj, touch_control_disable_denoise);
+
+static mp_obj_t touch_control_read_denoise(void) {
+    uint32_t value;
+    touch_control_check_error(touch_pad_denoise_read_data(&value));
+    return mp_obj_new_int_from_uint(value);
+}
+static MP_DEFINE_CONST_FUN_OBJ_0(touch_control_read_denoise_obj, touch_control_read_denoise);
+
+static mp_obj_t touch_control_configure_waterproof(
+    mp_obj_t guard_channel_obj,
+    mp_obj_t shield_driver_obj
+) {
+    touch_pad_waterproof_t config = {
+        .guard_ring_pad = (touch_pad_t)touch_control_get_int_in_range(
+            guard_channel_obj,
+            TOUCH_PAD_NUM0,
+            TOUCH_PAD_MAX - 1,
+            "guard_channel"
+        ),
+        .shield_driver = (touch_pad_shield_driver_t)touch_control_get_int_in_range(
+            shield_driver_obj,
+            TOUCH_PAD_SHIELD_DRV_L0,
+            TOUCH_PAD_SHIELD_DRV_L7,
+            "shield_driver"
+        ),
+    };
+    touch_control_check_error(touch_pad_waterproof_set_config(&config));
+    return mp_const_none;
+}
+static MP_DEFINE_CONST_FUN_OBJ_2(
+    touch_control_configure_waterproof_obj,
+    touch_control_configure_waterproof
+);
+
+static mp_obj_t touch_control_get_waterproof_config(void) {
+    touch_pad_waterproof_t config;
+    touch_control_check_error(touch_pad_waterproof_get_config(&config));
+    mp_obj_t result[] = {
+        MP_OBJ_NEW_SMALL_INT(config.guard_ring_pad),
+        MP_OBJ_NEW_SMALL_INT(config.shield_driver),
+    };
+    return mp_obj_new_tuple(2, result);
+}
+static MP_DEFINE_CONST_FUN_OBJ_0(
+    touch_control_get_waterproof_config_obj,
+    touch_control_get_waterproof_config
+);
+
+static mp_obj_t touch_control_enable_waterproof(void) {
+    touch_control_check_error(touch_pad_waterproof_enable());
+    return mp_const_none;
+}
+static MP_DEFINE_CONST_FUN_OBJ_0(
+    touch_control_enable_waterproof_obj,
+    touch_control_enable_waterproof
+);
+
+static mp_obj_t touch_control_disable_waterproof(void) {
+    touch_control_check_error(touch_pad_waterproof_disable());
+    return mp_const_none;
+}
+static MP_DEFINE_CONST_FUN_OBJ_0(
+    touch_control_disable_waterproof_obj,
+    touch_control_disable_waterproof
+);
+
 #define TOUCH_CONTROL_FUNCTION(name) \
     { MP_ROM_QSTR(MP_QSTR_##name), MP_ROM_PTR(&touch_control_##name##_obj) }
 
@@ -348,6 +462,15 @@ static const mp_rom_map_elem_t touch_control_module_globals_table[] = {
     TOUCH_CONTROL_FUNCTION(enable_filter),
     TOUCH_CONTROL_FUNCTION(disable_filter),
     TOUCH_CONTROL_FUNCTION(read_smooth),
+    TOUCH_CONTROL_FUNCTION(configure_denoise),
+    TOUCH_CONTROL_FUNCTION(get_denoise_config),
+    TOUCH_CONTROL_FUNCTION(enable_denoise),
+    TOUCH_CONTROL_FUNCTION(disable_denoise),
+    TOUCH_CONTROL_FUNCTION(read_denoise),
+    TOUCH_CONTROL_FUNCTION(configure_waterproof),
+    TOUCH_CONTROL_FUNCTION(get_waterproof_config),
+    TOUCH_CONTROL_FUNCTION(enable_waterproof),
+    TOUCH_CONTROL_FUNCTION(disable_waterproof),
 
     TOUCH_CONTROL_CONSTANT(TIMEOUT_THRESHOLD_DEFAULT, TOUCH_CONTROL_TIMEOUT_THRESHOLD_DEFAULT),
 
@@ -398,6 +521,28 @@ static const mp_rom_map_elem_t touch_control_module_globals_table[] = {
     TOUCH_CONTROL_CONSTANT(SMOOTH_IIR_2, TOUCH_PAD_SMOOTH_IIR_2),
     TOUCH_CONTROL_CONSTANT(SMOOTH_IIR_4, TOUCH_PAD_SMOOTH_IIR_4),
     TOUCH_CONTROL_CONSTANT(SMOOTH_IIR_8, TOUCH_PAD_SMOOTH_IIR_8),
+
+    TOUCH_CONTROL_CONSTANT(DENOISE_BIT_12, TOUCH_PAD_DENOISE_BIT12),
+    TOUCH_CONTROL_CONSTANT(DENOISE_BIT_10, TOUCH_PAD_DENOISE_BIT10),
+    TOUCH_CONTROL_CONSTANT(DENOISE_BIT_8, TOUCH_PAD_DENOISE_BIT8),
+    TOUCH_CONTROL_CONSTANT(DENOISE_BIT_4, TOUCH_PAD_DENOISE_BIT4),
+    TOUCH_CONTROL_CONSTANT(DENOISE_CAP_LEVEL_0, TOUCH_PAD_DENOISE_CAP_L0),
+    TOUCH_CONTROL_CONSTANT(DENOISE_CAP_LEVEL_1, TOUCH_PAD_DENOISE_CAP_L1),
+    TOUCH_CONTROL_CONSTANT(DENOISE_CAP_LEVEL_2, TOUCH_PAD_DENOISE_CAP_L2),
+    TOUCH_CONTROL_CONSTANT(DENOISE_CAP_LEVEL_3, TOUCH_PAD_DENOISE_CAP_L3),
+    TOUCH_CONTROL_CONSTANT(DENOISE_CAP_LEVEL_4, TOUCH_PAD_DENOISE_CAP_L4),
+    TOUCH_CONTROL_CONSTANT(DENOISE_CAP_LEVEL_5, TOUCH_PAD_DENOISE_CAP_L5),
+    TOUCH_CONTROL_CONSTANT(DENOISE_CAP_LEVEL_6, TOUCH_PAD_DENOISE_CAP_L6),
+    TOUCH_CONTROL_CONSTANT(DENOISE_CAP_LEVEL_7, TOUCH_PAD_DENOISE_CAP_L7),
+
+    TOUCH_CONTROL_CONSTANT(SHIELD_DRIVER_LEVEL_0, TOUCH_PAD_SHIELD_DRV_L0),
+    TOUCH_CONTROL_CONSTANT(SHIELD_DRIVER_LEVEL_1, TOUCH_PAD_SHIELD_DRV_L1),
+    TOUCH_CONTROL_CONSTANT(SHIELD_DRIVER_LEVEL_2, TOUCH_PAD_SHIELD_DRV_L2),
+    TOUCH_CONTROL_CONSTANT(SHIELD_DRIVER_LEVEL_3, TOUCH_PAD_SHIELD_DRV_L3),
+    TOUCH_CONTROL_CONSTANT(SHIELD_DRIVER_LEVEL_4, TOUCH_PAD_SHIELD_DRV_L4),
+    TOUCH_CONTROL_CONSTANT(SHIELD_DRIVER_LEVEL_5, TOUCH_PAD_SHIELD_DRV_L5),
+    TOUCH_CONTROL_CONSTANT(SHIELD_DRIVER_LEVEL_6, TOUCH_PAD_SHIELD_DRV_L6),
+    TOUCH_CONTROL_CONSTANT(SHIELD_DRIVER_LEVEL_7, TOUCH_PAD_SHIELD_DRV_L7),
 };
 static MP_DEFINE_CONST_DICT(touch_control_module_globals, touch_control_module_globals_table);
 

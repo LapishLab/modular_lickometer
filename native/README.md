@@ -35,6 +35,11 @@ and
 | `configure_filter()`, `get_filter_config()` | `touch_pad_filter_set_config()`, `touch_pad_filter_get_config()` |
 | `enable_filter()`, `disable_filter()` | `touch_pad_filter_enable()`, `touch_pad_filter_disable()` |
 | `read_smooth()` | `touch_pad_filter_read_smooth()` |
+| `configure_denoise()`, `get_denoise_config()` | `touch_pad_denoise_set_config()`, `touch_pad_denoise_get_config()` |
+| `enable_denoise()`, `disable_denoise()` | `touch_pad_denoise_enable()`, `touch_pad_denoise_disable()` |
+| `read_denoise()` | `touch_pad_denoise_read_data()` |
+| `configure_waterproof()`, `get_waterproof_config()` | `touch_pad_waterproof_set_config()`, `touch_pad_waterproof_get_config()` |
+| `enable_waterproof()`, `disable_waterproof()` | `touch_pad_waterproof_enable()`, `touch_pad_waterproof_disable()` |
 
 Use the named constants exposed by `touch_control` for ESP-IDF enum and
 interrupt values. Full Python signatures and constants are in
@@ -44,6 +49,10 @@ interrupt values. Full Python signatures and constants are in
 returns hardware-filtered data after the filter has been configured and
 enabled. The timeout default is available as
 `touch_control.TIMEOUT_THRESHOLD_DEFAULT`.
+
+The waterproof API uses Touch14 (GPIO14) as the driven shield. Pass guard
+channel `0` when no external guard electrode is used. GPIO14 must not be used
+for another peripheral or connected to ground while the shield is enabled.
 
 Run [`tests/touch_control_api.py`](../tests/touch_control_api.py) on the board,
 outside an experiment, to check every wrapper. It validates the API and return
